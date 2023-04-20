@@ -1,0 +1,6 @@
+github.com/MrMelon54/trie v0.0.2 h1:ZXWcX5ij62O9K4I/anuHmVg8L3tF0UGdlPceAASwKEY=
+github.com/MrMelon54/trie v0.0.2/go.mod h1:sGCGOcqb+DxSxvHgSOpbpkmA7mFZR47YDExy9OCbVZI=
+github.com/MrMelon54/violet v0.0.0-20230419182034-77d570ac1e6d h1:TstTVV4XN/4UKau4h+f9KsATSoEMW/OZp2eawCXHUq8=
+github.com/MrMelon54/violet v0.0.0-20230419182034-77d570ac1e6d/go.mod h1:Opth240Nv/NHNJ3yrSxFAcw6zG7CqxJsh6rcxe3j3/E=
+github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
+github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=

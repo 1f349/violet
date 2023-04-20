@@ -2,6 +2,7 @@ package target
 
 import (
 	"fmt"
+	"github.com/MrMelon54/violet/utils"
 	"net/http"
 	"net/url"
 	"path"
@@ -28,7 +29,7 @@ func (r Redirect) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if !r.Abs {
 		p = path.Join(r.Path, req.URL.Path)
 	}
-	u := url.URL{
+	u := &url.URL{
 		Scheme: req.URL.Scheme,
 		Host:   r.FullHost(),
 		Path:   p,
@@ -36,7 +37,7 @@ func (r Redirect) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if u.Path == "/" {
 		u.Path = ""
 	}
-	http.Redirect(rw, req, u.String(), r.Code)
+	utils.FastRedirect(rw, req, u.String(), r.Code)
 }
 
 func (r Redirect) String() string {

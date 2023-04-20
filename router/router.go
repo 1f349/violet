@@ -71,7 +71,7 @@ func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	wildcardHost := "*." + host[parentHostDot:]
+	wildcardHost := "*" + host[parentHostDot:]
 
 	if r.serveRedirectHTTP(rw, req, wildcardHost) {
 		return
@@ -82,7 +82,17 @@ func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) serveRouteHTTP(rw http.ResponseWriter, req *http.Request, host string) bool {
-	//fmt.Printf("Router::serveRouteHTTP(%#v, %#v, %s)\n", rw, req, host)
+	h := r.route[host]
+	if h != nil {
+		pairs := h.GetAllKeyValues([]byte(req.URL.Path))
+		for i := len(pairs) - 1; i >= 0; i-- {
+			if pairs[i].Value.Pre || pairs[i].Key == req.URL.Path {
+				req.URL.Path = strings.TrimPrefix(req.URL.Path, pairs[i].Key)
+				pairs[i].Value.ServeHTTP(rw, req)
+				return true
+			}
+		}
+	}
 	return false
 }
 
