@@ -8,3 +8,5 @@ require (
 )
 
 require github.com/MrMelon54/trie v0.0.2 // indirect
+
+replace github.com/MrMelon54/violet => ../
