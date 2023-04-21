@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/MrMelon54/violet/domains"
 	"github.com/MrMelon54/violet/utils"
@@ -16,7 +17,7 @@ import (
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
 // acme challenges, this is used for Lets Encrypt HTTP verification.
-func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains) *http.Server {
+func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains, db *sql.DB) *http.Server {
 	r := httprouter.New()
 	var secureExtend string
 	if httpsPort != 443 {
@@ -35,10 +36,29 @@ func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains) *
 			// check if the key is valid
 			key := params.ByName("key")
 			if key == "" {
-				rw.WriteHeader(http.StatusOK)
+				rw.WriteHeader(http.StatusNotFound)
 				return
 			}
 
+			// prepare for executing query
+			prepare, err := db.Prepare("select value from acme_challenges limit 1 where domain = ? and key = ?")
+			if err != nil {
+				utils.RespondHttpStatus(rw, http.StatusInternalServerError)
+				return
+			}
+
+			// query the row and extract the value
+			row := prepare.QueryRow(h, key)
+			var value string
+			err = row.Scan(&value)
+			if err != nil {
+				utils.RespondHttpStatus(rw, http.StatusInternalServerError)
+				return
+			}
+
+			// output response
+			rw.WriteHeader(http.StatusOK)
+			_, _ = rw.Write([]byte(value))
 		}
 		rw.WriteHeader(http.StatusNotFound)
 	})

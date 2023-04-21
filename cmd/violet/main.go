@@ -55,5 +55,5 @@ func main() {
 	r := router.New(reverseProxy)
 
 	servers.NewApiServer(*apiListen, nil, utils.MultiCompilable{allowedDomains})
-	servers.NewHttpServer(*httpListen, 0, allowedDomains)
+	servers.NewHttpServer(*httpListen, 0, allowedDomains, db)
 }
