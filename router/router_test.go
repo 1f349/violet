@@ -113,7 +113,7 @@ func assertHttpRedirect(t *testing.T, r *Router, code int, target, method, start
 
 func TestRouter_AddRedirect(t *testing.T) {
 	for _, i := range redirectTests {
-		r := New()
+		r := New(nil)
 		dst := i.dst
 		dst.Host = "example.com"
 		dst.Code = http.StatusFound

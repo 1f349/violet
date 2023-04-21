@@ -16,13 +16,14 @@ type Router struct {
 	proxy    *httputil.ReverseProxy
 }
 
-func New() *Router {
+func New(proxy *httputil.ReverseProxy) *Router {
 	return &Router{
 		route:    make(map[string]*trie.Trie[target.Route]),
 		redirect: make(map[string]*trie.Trie[target.Redirect]),
 		notFound: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			_, _ = fmt.Fprintf(rw, "%d %s\n", http.StatusNotFound, http.StatusText(http.StatusNotFound))
 		}),
+		proxy: proxy,
 	}
 }
 
@@ -45,10 +46,11 @@ func (r *Router) hostRedirect(host string) *trie.Trie[target.Redirect] {
 }
 
 func (r *Router) AddService(host string, t target.Route) {
-	r.AddRoute(host, "", t)
+	r.AddRoute(host, "/", t)
 }
 
 func (r *Router) AddRoute(host string, path string, t target.Route) {
+	t.Proxy = r.proxy
 	r.hostRoute(host).PutString(path, t)
 }
 

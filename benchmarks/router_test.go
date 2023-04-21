@@ -22,7 +22,7 @@ func benchRequest(b *testing.B, router http.Handler, r *http.Request) {
 }
 
 func BenchmarkVioletRouter(b *testing.B) {
-	r := router.New()
+	r := router.New(nil)
 	r.AddRedirect("*.example.com", "", target.Redirect{
 		Pre:  true,
 		Host: "example.com",
