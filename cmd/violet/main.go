@@ -50,10 +50,10 @@ func main() {
 		}
 	}
 
-	allowedDomains := domains.New()
+	allowedDomains := domains.New(db)
 	reverseProxy := proxy.CreateHybridReverseProxy()
 	r := router.New(reverseProxy)
 
-	servers.NewApiServer(*apiListen, nil, utils.MultiCompilable{})
+	servers.NewApiServer(*apiListen, nil, utils.MultiCompilable{allowedDomains})
 	servers.NewHttpServer(*httpListen, 0, allowedDomains)
 }

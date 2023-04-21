@@ -10,13 +10,14 @@ import (
 	"time"
 )
 
-// NewApiServer creates and runs a *http.Server containing all the API endpoints for the software
+// NewApiServer creates and runs a http server containing all the API
+// endpoints for the software
 //
-// `/compile` - reloads all domains, routes and redirects from the configuration files
+// `/compile` - reloads all domains, routes and redirects
 func NewApiServer(listen string, verify mjwt.Provider, compileTarget utils.MultiCompilable) *http.Server {
 	r := httprouter.New()
 
-	// Endpoint `/compile` reloads all domains, routes and redirects from the configuration files
+	// Endpoint for compile action
 	r.POST("/compile", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		// Get bearer token
 		bearer := utils.GetBearer(req)
