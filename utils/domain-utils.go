@@ -1,16 +1,17 @@
 package utils
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 )
 
-func SplitDomainPort(host string, defaultPort uint16) (domain string, port uint16, ok bool) {
+func SplitDomainPort(host string, defaultPort int) (domain string, port int, ok bool) {
 	a := strings.SplitN(host, ":", 2)
 	switch len(a) {
 	case 2:
 		domain = a[0]
-		_, err := fmt.Sscanf(a[1], "%d", &port)
+		p, err := strconv.Atoi(a[1])
+		port = p
 		ok = err == nil
 	case 1:
 		domain = a[0]

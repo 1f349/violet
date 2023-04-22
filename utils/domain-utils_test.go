@@ -9,12 +9,12 @@ func TestSplitDomainPort(t *testing.T) {
 	domain, port, ok := SplitDomainPort("www.example.com:5612", 443)
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "www.example.com", domain)
-	assert.Equal(t, uint16(5612), port)
+	assert.Equal(t, int(5612), port)
 
 	domain, port, ok = SplitDomainPort("example.com", 443)
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "example.com", domain)
-	assert.Equal(t, uint16(443), port)
+	assert.Equal(t, int(443), port)
 }
 
 func TestDomainWithoutPort(t *testing.T) {

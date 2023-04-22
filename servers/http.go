@@ -1,9 +1,7 @@
 package servers
 
 import (
-	"database/sql"
 	"fmt"
-	"github.com/MrMelon54/violet/domains"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/julienschmidt/httprouter"
 	"log"
@@ -17,9 +15,13 @@ import (
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
 // acme challenges, this is used for Lets Encrypt HTTP verification.
-func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains, db *sql.DB) *http.Server {
+func NewHttpServer(conf *Conf) *http.Server {
 	r := httprouter.New()
 	var secureExtend string
+	_, httpsPort, ok := utils.SplitDomainPort(conf.HttpsListen, 443)
+	if !ok {
+		httpsPort = 443
+	}
 	if httpsPort != 443 {
 		secureExtend = fmt.Sprintf(":%d", httpsPort)
 	}
@@ -28,7 +30,7 @@ func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains, d
 	r.GET("/.well-known/acme-challenge/{key}", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		if h, ok := utils.GetDomainWithoutPort(req.Host); ok {
 			// check if the host is valid
-			if !domainCheck.IsValid(req.Host) {
+			if !conf.Domains.IsValid(req.Host) {
 				http.Error(rw, fmt.Sprintf("%d %s\n", 420, "Invalid host"), 420)
 				return
 			}
@@ -41,7 +43,7 @@ func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains, d
 			}
 
 			// prepare for executing query
-			prepare, err := db.Prepare("select value from acme_challenges limit 1 where domain = ? and key = ?")
+			prepare, err := conf.DB.Prepare("select value from acme_challenges limit 1 where domain = ? and key = ?")
 			if err != nil {
 				utils.RespondHttpStatus(rw, http.StatusInternalServerError)
 				return
@@ -79,7 +81,7 @@ func NewHttpServer(listen string, httpsPort int, domainCheck *domains.Domains, d
 
 	// Create and run http server
 	s := &http.Server{
-		Addr:              listen,
+		Addr:              conf.HttpListen,
 		Handler:           r,
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Minute,

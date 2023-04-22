@@ -14,14 +14,18 @@ type Domains struct {
 	m  map[string]struct{}
 }
 
+// New creates a new domain list
 func New(db *sql.DB) *Domains {
-	return &Domains{
+	a := &Domains{
 		db: db,
 		s:  &sync.RWMutex{},
 		m:  make(map[string]struct{}),
 	}
+	a.Compile()
+	return a
 }
 
+// IsValid returns true if a domain is valid.
 func (d *Domains) IsValid(host string) bool {
 	// remove the port
 	domain, ok := utils.GetDomainWithoutPort(host)
@@ -34,6 +38,7 @@ func (d *Domains) IsValid(host string) bool {
 	defer d.s.RUnlock()
 
 	// check root domains `www.example.com`, `example.com`, `com`
+	// TODO: could be faster using indexes and cropping the string?
 	n := strings.Split(domain, ".")
 	for i := 0; i < len(n); i++ {
 		if _, ok := d.m[strings.Join(n[i:], ".")]; ok {
@@ -43,6 +48,10 @@ func (d *Domains) IsValid(host string) bool {
 	return false
 }
 
+// Compile downloads the list of domains from the database and loads them into
+// memory for faster lookups.
+//
+// This method is asynchronous and uses locks for safety.
 func (d *Domains) Compile() {
 	// async compile magic
 	go func() {
@@ -59,6 +68,8 @@ func (d *Domains) Compile() {
 	}()
 }
 
+// internalCompile is a hidden internal method for querying the database during
+// the Compile() method.
 func (d *Domains) internalCompile(m map[string]struct{}) error {
 	log.Println("[Domains] Updating domains from database")
 

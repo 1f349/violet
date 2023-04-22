@@ -3,12 +3,15 @@ module github.com/MrMelon54/violet
 go 1.20
 
 require (
+	code.mrmelon54.com/melon/certgen v0.0.0-20220830133534-0fb4cb7e67d1
 	code.mrmelon54.com/melon/summer-utils v0.0.3
 	github.com/MrMelon54/trie v0.0.2
+	github.com/gorilla/mux v1.8.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mrmelon54/mjwt v0.0.1
 	github.com/rs/cors v1.9.0
+	github.com/sethvargo/go-limiter v0.7.2
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/net v0.9.0
 )
