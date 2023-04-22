@@ -6,8 +6,9 @@ import (
 	"flag"
 	"github.com/MrMelon54/violet/certs"
 	"github.com/MrMelon54/violet/domains"
+	errorPages "github.com/MrMelon54/violet/error-pages"
+	"github.com/MrMelon54/violet/favicons"
 	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/router"
 	"github.com/MrMelon54/violet/servers"
 	"github.com/MrMelon54/violet/utils"
 	_ "github.com/mattn/go-sqlite3"
@@ -23,6 +24,7 @@ var (
 	apiListen     = flag.String("api", "127.0.0.1:8080", "address for api listening")
 	httpListen    = flag.String("http", "0.0.0.0:80", "address for http listening")
 	httpsListen   = flag.String("https", "0.0.0.0:443", "address for https listening")
+	inkscapeCmd   = flag.String("inkscape", "inkscape", "Path to inkscape binary")
 )
 
 func main() {
@@ -44,15 +46,11 @@ func main() {
 		log.Fatalf("[Violet] Failed to open database '%s'...", *databasePath)
 	}
 
-	// load allowed domains
-	allowedDomains := domains.New(db)
-
-	// load allowed certificates
-	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath))
-
-	// create reverse proxy and
-	reverseProxy := proxy.CreateHybridReverseProxy()
-	r := router.New(reverseProxy)
+	allowedDomains := domains.New(db)                                  // load allowed domains
+	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath)) // load certificate manager
+	reverseProxy := proxy.CreateHybridReverseProxy()                   // load reverse proxy
+	dynamicFavicons := favicons.New(db, *inkscapeCmd)                  // load dynamic favicon provider
+	dynamicErrorPages := errorPages.New(os.DirFS(*errorPagePath))      // load dynamic error page provider
 
 	srvConf := &servers.Conf{
 		ApiListen:   *apiListen,
@@ -62,13 +60,13 @@ func main() {
 		Domains:     allowedDomains,
 		Certs:       allowedCerts,
 		Favicons:    dynamicFavicons,
-		Verify:      apiVerify,
+		Verify:      nil, // TODO: add mjwt verify support
 		ErrorPages:  dynamicErrorPages,
 		Proxy:       reverseProxy,
 	}
 
 	if *apiListen != "" {
-		servers.NewApiServer(*apiListen, nil, utils.MultiCompilable{allowedDomains})
+		servers.NewApiServer(srvConf, utils.MultiCompilable{allowedDomains})
 	}
 	if *httpListen != "" {
 		servers.NewHttpServer(srvConf)

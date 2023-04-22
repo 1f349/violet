@@ -14,7 +14,7 @@ import (
 // endpoints for the software
 //
 // `/compile` - reloads all domains, routes and redirects
-func NewApiServer(listen string, verify mjwt.Provider, compileTarget utils.MultiCompilable) *http.Server {
+func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server {
 	r := httprouter.New()
 
 	// Endpoint for compile action
@@ -27,7 +27,7 @@ func NewApiServer(listen string, verify mjwt.Provider, compileTarget utils.Multi
 		}
 
 		// Read claims from mjwt
-		_, b, err := mjwt.ExtractClaims[auth.AccessTokenClaims](verify, bearer)
+		_, b, err := mjwt.ExtractClaims[auth.AccessTokenClaims](conf.Verify, bearer)
 		if err != nil {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return

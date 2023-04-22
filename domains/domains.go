@@ -21,6 +21,15 @@ func New(db *sql.DB) *Domains {
 		s:  &sync.RWMutex{},
 		m:  make(map[string]struct{}),
 	}
+
+	// init domains table
+	_, err := a.db.Exec(`create table if not exists domains (id integer primary key autoincrement, domain varchar)`)
+	if err != nil {
+		log.Printf("[WARN] Failed to generate 'domains' table\n")
+		return nil
+	}
+
+	// run compile to get the initial data
 	a.Compile()
 	return a
 }

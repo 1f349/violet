@@ -53,7 +53,10 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 func (c *Certs) Compile() {
 	// async compile magic
 	go func() {
+		// new map
 		certMap := make(map[string]*tls.Certificate)
+
+		// compile map and check errors
 		err := c.internalCompile(certMap)
 		if err != nil {
 			log.Printf("[Certs] Compile failed: %s\n", err)
