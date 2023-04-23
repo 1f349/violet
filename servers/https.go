@@ -22,8 +22,11 @@ func NewHttpsServer(conf *Conf) *http.Server {
 	s := &http.Server{
 		Addr: conf.HttpsListen,
 		Handler: setupRateLimiter(300).Middleware(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.Header().Set("Content-Type", "text/html")
 			rw.WriteHeader(http.StatusNotImplemented)
+			_, _ = rw.Write([]byte("<pre>"))
 			_, _ = rw.Write([]byte(fmt.Sprintf("%#v\n", req)))
+			_, _ = rw.Write([]byte("</pre>"))
 			_ = r
 			// TODO: serve from router and proxy
 			// r.ServeHTTP(rw, req)

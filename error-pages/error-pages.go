@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -82,8 +84,21 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 		// get file name and extension
 		name := i.Name()
 		ext := filepath.Ext(name)
+
+		// if the extension is not 'html' then ignore the file
 		if ext != "html" {
-			log.Printf("[ErrorPages] WARNING: non '.html' file in error pages directory: '%s'\n", name)
+			log.Printf("[ErrorPages] WARNING: ignoring non '.html' file in error pages directory: '%s'\n", name)
+			continue
+		}
+
+		// if the name can't be
+		nameInt, err := strconv.Atoi(strings.TrimSuffix(name, ".html"))
+		if err != nil {
+			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory: '%s'\n", name)
+			continue
+		}
+		if nameInt < 100 || nameInt >= 600 {
+			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory must be 100-599: '%s'\n", name)
 			continue
 		}
 
@@ -93,7 +108,11 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 			return fmt.Errorf("failed to read html file '%s': %w", name, err)
 		}
 
-		// TODO: save to map
+		m[nameInt] = func(rw http.ResponseWriter) {
+			rw.Header().Set("Content-Type", "text/html; encoding=utf-8")
+			rw.WriteHeader(nameInt)
+			_, _ = rw.Write(htmlData)
+		}
 	}
 
 	// well no errors happened
