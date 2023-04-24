@@ -11,6 +11,7 @@ import (
 	"sync"
 )
 
+// Certs is the certificate loader and management system.
 type Certs struct {
 	cDir fs.FS
 	kDir fs.FS
@@ -18,6 +19,7 @@ type Certs struct {
 	m    map[string]*tls.Certificate
 }
 
+// New creates a new cert list
 func New(certDir fs.FS, keyDir fs.FS) *Certs {
 	a := &Certs{
 		cDir: certDir,
@@ -25,6 +27,8 @@ func New(certDir fs.FS, keyDir fs.FS) *Certs {
 		s:    &sync.RWMutex{},
 		m:    make(map[string]*tls.Certificate),
 	}
+
+	// run compile to get the initial data
 	a.Compile()
 	return a
 }
@@ -62,6 +66,7 @@ func (c *Certs) Compile() {
 			log.Printf("[Certs] Compile failed: %s\n", err)
 			return
 		}
+
 		// lock while replacing the map
 		c.s.Lock()
 		c.m = certMap
@@ -69,6 +74,8 @@ func (c *Certs) Compile() {
 	}()
 }
 
+// internalCompile is a hidden internal method for loading the certificate and
+// key files
 func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 	// try to read dir
 	files, err := fs.ReadDir(c.cDir, "")

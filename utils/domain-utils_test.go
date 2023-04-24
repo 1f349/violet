@@ -38,11 +38,11 @@ func TestReplaceSubdomainWithWildcard(t *testing.T) {
 }
 
 func TestGetBaseDomain(t *testing.T) {
-	domain, ok := GetBaseDomain("www.example.com")
+	domain, ok := GetParentDomain("www.example.com")
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "example.com", domain)
 
-	domain, ok = GetBaseDomain("www.example.com:5612")
+	domain, ok = GetParentDomain("www.example.com:5612")
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "example.com:5612", domain)
 }

@@ -4,12 +4,8 @@ import (
 	"net/http"
 )
 
-var (
-	a1 = []byte("<a href=\"")
-	a2 = []byte("\">")
-	a3 = []byte("</a>.\n")
-)
-
+// FastRedirect adds a location header, status code and if the method is get,
+// outputs the status text.
 func FastRedirect(rw http.ResponseWriter, req *http.Request, url string, code int) {
 	rw.Header().Add("Location", url)
 	rw.WriteHeader(code)

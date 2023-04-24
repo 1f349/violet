@@ -46,7 +46,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 
 	// Create and run http server
 	s := &http.Server{
-		Addr:              listen,
+		Addr:              conf.ApiListen,
 		Handler:           r,
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Minute,

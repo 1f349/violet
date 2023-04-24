@@ -16,8 +16,9 @@ import (
 	"os"
 )
 
+// flags - each one has a usage field lol
 var (
-	databasePath  = flag.String("db", "", "/path/to/database.sqlite")
+	databasePath  = flag.String("db", "", "/path/to/database.sqlite : path to the database file")
 	keyPath       = flag.String("keys", "", "/path/to/keys : path contains the keys with names matching the certificates and '.key' extensions")
 	certPath      = flag.String("certs", "", "/path/to/certificates : path contains the certificates to load in armoured PEM encoding")
 	errorPagePath = flag.String("errors", "", "/path/to/error-pages : path contains the custom error pages")
@@ -30,11 +31,12 @@ var (
 func main() {
 	log.Println("[Violet] Starting...")
 
-	// create paths
+	// create path to cert dir
 	err := os.MkdirAll(*certPath, os.ModePerm)
 	if err != nil {
 		log.Fatalf("[Violet] Failed to create certificate path '%s' does not exist", *certPath)
 	}
+	// create path to key dir
 	err = os.MkdirAll(*keyPath, os.ModePerm)
 	if err != nil {
 		log.Fatalf("[Violet] Failed to create certificate key path '%s' does not exist", *keyPath)
@@ -52,6 +54,7 @@ func main() {
 	dynamicFavicons := favicons.New(db, *inkscapeCmd)                  // load dynamic favicon provider
 	dynamicErrorPages := errorPages.New(os.DirFS(*errorPagePath))      // load dynamic error page provider
 
+	// struct containing config for the http servers
 	srvConf := &servers.Conf{
 		ApiListen:   *apiListen,
 		HttpListen:  *httpListen,

@@ -18,6 +18,15 @@ import (
 
 var ErrFaviconNotFound = errors.New("favicon not found")
 
+// Favicons is a dynamic favicon generator which supports overwriting favicons
+type Favicons struct {
+	db         *sql.DB
+	cmd        string
+	cLock      *sync.RWMutex
+	faviconMap map[string]*FaviconList
+}
+
+// New creates a new dynamic favicon generator
 func New(db *sql.DB, inkscapeCmd string) *Favicons {
 	f := &Favicons{
 		db:         db,
@@ -29,7 +38,7 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 	// init favicons table
 	_, err := f.db.Exec(`create table if not exists favicons (id integer primary key autoincrement, host varchar, svg varchar, png varchar, ico varchar)`)
 	if err != nil {
-		log.Printf("[WARN] Failed to generate 'domains' table\n")
+		log.Printf("[WARN] Failed to generate 'favicons' table\n")
 		return nil
 	}
 
@@ -38,22 +47,22 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 	return f
 }
 
-type Favicons struct {
-	db         *sql.DB
-	cmd        string
-	cLock      *sync.RWMutex
-	faviconMap map[string]*FaviconList
-}
-
+// Compile downloads the list of favicon mappings from the database and loads
+// them and the target favicons into memory for faster lookups
 func (f *Favicons) Compile() {
+	// async compile magic
 	go func() {
+		// new map
 		favicons := make(map[string]*FaviconList)
+
+		// compile map and check errors
 		err := f.internalCompile(favicons)
 		if err != nil {
 			// log compile errors
 			log.Printf("[Favicons] Compile failed: %s\n", err)
 			return
 		}
+
 		// lock while replacing the map
 		f.cLock.Lock()
 		f.faviconMap = favicons
@@ -61,22 +70,27 @@ func (f *Favicons) Compile() {
 	}()
 }
 
-func (f *Favicons) GetIcons(host string) (*FaviconList, bool) {
+// GetIcons returns the favicon list for the provided host or nil if no
+// icon is found or generated
+func (f *Favicons) GetIcons(host string) *FaviconList {
+	// read lock for safety
 	f.cLock.RLock()
 	defer f.cLock.RUnlock()
-	if a, ok := f.faviconMap[host]; ok {
-		return a, true
-	}
-	return nil, false
+
+	// return value from map
+	return f.faviconMap[host]
 }
 
+// internalCompile is a hidden internal method for loading and generating all
+// favicons.
 func (f *Favicons) internalCompile(faviconMap map[string]*FaviconList) error {
 	// query all rows in database
-	query, err := f.db.Query(`select * from favicons`)
+	query, err := f.db.Query(`select host, svg, png, ico from favicons`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare query: %w", err)
 	}
 
+	// loop over rows and scan in data using error group to catch errors
 	var g errgroup.Group
 	for query.Next() {
 		var host, rawSvg, rawPng, rawIco string
@@ -85,12 +99,17 @@ func (f *Favicons) internalCompile(faviconMap map[string]*FaviconList) error {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
+		// create favicon list for this row
 		l := &FaviconList{
 			Ico: CreateFaviconImage(rawIco),
 			Png: CreateFaviconImage(rawPng),
 			Svg: CreateFaviconImage(rawSvg),
 		}
+
+		// save the favicon list to the map
 		faviconMap[host] = l
+
+		// run the pre-process in a separate goroutine
 		g.Go(func() error {
 			return l.PreProcess(f.convertSvgToPng)
 		})
@@ -98,16 +117,19 @@ func (f *Favicons) internalCompile(faviconMap map[string]*FaviconList) error {
 	return g.Wait()
 }
 
+// convertSvgToPng calls svg2png which runs inkscape in a subprocess
 func (f *Favicons) convertSvgToPng(in []byte) ([]byte, error) {
 	return svg2png(f.cmd, in)
 }
 
+// FaviconList contains the ico, png and svg icons for separate favicons
 type FaviconList struct {
 	Ico *FaviconImage // can be generated from png with wrapper
 	Png *FaviconImage // can be generated from svg with inkscape
 	Svg *FaviconImage
 }
 
+// ProduceIco outputs the bytes of the ico icon or an error
 func (l *FaviconList) ProduceIco() ([]byte, error) {
 	if l.Ico == nil {
 		return nil, ErrFaviconNotFound
@@ -115,6 +137,7 @@ func (l *FaviconList) ProduceIco() ([]byte, error) {
 	return l.Ico.Raw, nil
 }
 
+// ProducePng outputs the bytes of the png icon or an error
 func (l *FaviconList) ProducePng() ([]byte, error) {
 	if l.Png == nil {
 		return nil, ErrFaviconNotFound
@@ -122,6 +145,7 @@ func (l *FaviconList) ProducePng() ([]byte, error) {
 	return l.Png.Raw, nil
 }
 
+// ProduceSvg outputs the bytes of the svg icon or an error
 func (l *FaviconList) ProduceSvg() ([]byte, error) {
 	if l.Svg == nil {
 		return nil, ErrFaviconNotFound
@@ -129,6 +153,8 @@ func (l *FaviconList) ProduceSvg() ([]byte, error) {
 	return l.Svg.Raw, nil
 }
 
+// PreProcess takes an input of the svg2png conversion function and outputs
+// an error if the SVG, PNG or ICO fails to download or generate
 func (l *FaviconList) PreProcess(convert func(in []byte) ([]byte, error)) error {
 	var err error
 
@@ -178,10 +204,13 @@ func (l *FaviconList) PreProcess(convert func(in []byte) ([]byte, error)) error 
 			return fmt.Errorf("[Favicons] Failed to generate ICO icon: %w", err)
 		}
 	}
+
+	// generate sha256 hashes for svg, png and ico
 	l.genSha256()
 	return nil
 }
 
+// genSha256 generates sha256 hashes
 func (l *FaviconList) genSha256() {
 	if l.Svg != nil {
 		l.Svg.Hash = genSha256(l.Svg.Raw)
@@ -194,6 +223,8 @@ func (l *FaviconList) genSha256() {
 	}
 }
 
+// getFaviconViaRequest uses the standard http request library to download
+// icons, outputs the raw bytes from the download or an error.
 func getFaviconViaRequest(url string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -210,21 +241,27 @@ func getFaviconViaRequest(url string) ([]byte, error) {
 	return rawBody, nil
 }
 
+// genSha256 generates a sha256 hash as a hex encoded string
 func genSha256(in []byte) string {
+	// create sha256 generator and write to it
 	h := sha256.New()
 	_, err := h.Write(in)
 	if err != nil {
 		return ""
 	}
+	// encode as hex
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// FaviconImage stores the url, hash and raw bytes of an image
 type FaviconImage struct {
 	Url  string
 	Hash string
 	Raw  []byte
 }
 
+// CreateFaviconImage outputs a FaviconImage with the specified URL or nil if
+// the URL is an empty string.
 func CreateFaviconImage(url string) *FaviconImage {
 	if url == "" {
 		return nil

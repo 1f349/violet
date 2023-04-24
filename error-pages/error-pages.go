@@ -20,29 +20,40 @@ type ErrorPages struct {
 	dir     fs.FS
 }
 
+// New creates a new error pages generator
 func New(dir fs.FS) *ErrorPages {
 	return &ErrorPages{
 		s: &sync.RWMutex{},
 		m: make(map[int]func(rw http.ResponseWriter)),
+		// generic error page writer
 		generic: func(rw http.ResponseWriter, code int) {
+			// if status text is empty then the code is unknown
 			a := http.StatusText(code)
 			if a != "" {
+				// output in "xxx Error Text" format
 				http.Error(rw, fmt.Sprintf("%d %s\n", code, a), code)
 				return
 			}
+			// output the code and generic unknown message
 			http.Error(rw, fmt.Sprintf("%d Unknown Error Code\n", code), code)
 		},
 		dir: dir,
 	}
 }
 
+// ServeError writes the error page for the given code to the response writer
 func (e *ErrorPages) ServeError(rw http.ResponseWriter, code int) {
+	// read lock for safety
 	e.s.RLock()
 	defer e.s.RUnlock()
+
+	// use the custom error page if it exists
 	if p, ok := e.m[code]; ok {
 		p(rw)
 		return
 	}
+
+	// otherwise use the generic error page
 	e.generic(rw, code)
 }
 
@@ -58,6 +69,7 @@ func (e *ErrorPages) Compile() {
 			log.Printf("[Certs] Compile failed: %s\n", err)
 			return
 		}
+
 		// lock while replacing the map
 		e.s.Lock()
 		e.m = errorPageMap
@@ -97,6 +109,8 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory: '%s'\n", name)
 			continue
 		}
+
+		// check if code is in range 100-599
 		if nameInt < 100 || nameInt >= 600 {
 			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory must be 100-599: '%s'\n", name)
 			continue
@@ -108,6 +122,7 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 			return fmt.Errorf("failed to read html file '%s': %w", name, err)
 		}
 
+		// create a callback function to write the page
 		m[nameInt] = func(rw http.ResponseWriter) {
 			rw.Header().Set("Content-Type", "text/html; encoding=utf-8")
 			rw.WriteHeader(nameInt)

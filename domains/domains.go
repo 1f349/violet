@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+// Domains is the domain list and management system.
 type Domains struct {
 	db *sql.DB
 	s  *sync.RWMutex
@@ -64,12 +65,16 @@ func (d *Domains) IsValid(host string) bool {
 func (d *Domains) Compile() {
 	// async compile magic
 	go func() {
+		// new map
 		domainMap := make(map[string]struct{})
+
+		// compile map and check errors
 		err := d.internalCompile(domainMap)
 		if err != nil {
 			log.Printf("[Domains] Compile failed: %s\n", err)
 			return
 		}
+
 		// lock while replacing the map
 		d.s.Lock()
 		d.m = domainMap
