@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// logHttpServerError is the internal function powering the logging in
+// RunBackgroundHttp and RunBackgroundHttps.
 func logHttpServerError(prefix string, err error) {
 	if err != nil {
 		if err == http.ErrServerClosed {
@@ -16,10 +18,14 @@ func logHttpServerError(prefix string, err error) {
 	}
 }
 
+// RunBackgroundHttp runs a http server and logs when the server closes or
+// errors.
 func RunBackgroundHttp(prefix string, s *http.Server) {
 	logHttpServerError(prefix, s.ListenAndServe())
 }
 
+// RunBackgroundHttps runs a http server with TLS encryption and logs when the
+// server closes or errors.
 func RunBackgroundHttps(prefix string, s *http.Server) {
 	logHttpServerError(prefix, s.ListenAndServeTLS("", ""))
 }

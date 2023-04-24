@@ -123,8 +123,6 @@ func TestRouter_AddRedirect(t *testing.T) {
 			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: v}
 			if v == "" {
 				u1 = nil
-			} else if v == "/" {
-				u1.Path = ""
 			}
 			u2 := &url.URL{Scheme: "https", Host: "www.example.com", Path: k}
 			assertHttpRedirect(t, r, http.StatusFound, outputUrl(u1), http.MethodGet, outputUrl(u2))

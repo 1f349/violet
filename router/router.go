@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/MrMelon54/trie"
 	"github.com/MrMelon54/violet/target"
+	"github.com/MrMelon54/violet/utils"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -59,7 +60,11 @@ func (r *Router) AddRedirect(host, path string, t target.Redirect) {
 }
 
 func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	host := req.Host
+	if req.URL.Path == "" {
+		req.URL.Path = "/"
+	}
+
+	host, _, _ := utils.SplitDomainPort(req.Host, 0)
 	if r.serveRedirectHTTP(rw, req, host) {
 		return
 	}

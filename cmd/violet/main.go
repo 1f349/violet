@@ -4,16 +4,22 @@ import (
 	"database/sql"
 	_ "embed"
 	"flag"
+	"fmt"
 	"github.com/MrMelon54/violet/certs"
 	"github.com/MrMelon54/violet/domains"
 	errorPages "github.com/MrMelon54/violet/error-pages"
 	"github.com/MrMelon54/violet/favicons"
 	"github.com/MrMelon54/violet/proxy"
+	"github.com/MrMelon54/violet/router"
 	"github.com/MrMelon54/violet/servers"
 	"github.com/MrMelon54/violet/utils"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 // flags - each one has a usage field lol
@@ -21,6 +27,7 @@ var (
 	databasePath  = flag.String("db", "", "/path/to/database.sqlite : path to the database file")
 	keyPath       = flag.String("keys", "", "/path/to/keys : path contains the keys with names matching the certificates and '.key' extensions")
 	certPath      = flag.String("certs", "", "/path/to/certificates : path contains the certificates to load in armoured PEM encoding")
+	selfSigned    = flag.Bool("ss", false, "enable self-signed certificate mode")
 	errorPagePath = flag.String("errors", "", "/path/to/error-pages : path contains the custom error pages")
 	apiListen     = flag.String("api", "127.0.0.1:8080", "address for api listening")
 	httpListen    = flag.String("http", "0.0.0.0:80", "address for http listening")
@@ -30,16 +37,21 @@ var (
 
 func main() {
 	log.Println("[Violet] Starting...")
+	flag.Parse()
 
-	// create path to cert dir
-	err := os.MkdirAll(*certPath, os.ModePerm)
-	if err != nil {
-		log.Fatalf("[Violet] Failed to create certificate path '%s' does not exist", *certPath)
+	if *certPath != "" {
+		// create path to cert dir
+		err := os.MkdirAll(*certPath, os.ModePerm)
+		if err != nil {
+			log.Fatalf("[Violet] Failed to create certificate path '%s' does not exist", *certPath)
+		}
 	}
-	// create path to key dir
-	err = os.MkdirAll(*keyPath, os.ModePerm)
-	if err != nil {
-		log.Fatalf("[Violet] Failed to create certificate key path '%s' does not exist", *keyPath)
+	if *keyPath != "" {
+		// create path to key dir
+		err := os.MkdirAll(*keyPath, os.ModePerm)
+		if err != nil {
+			log.Fatalf("[Violet] Failed to create certificate key path '%s' does not exist", *keyPath)
+		}
 	}
 
 	// open sqlite database
@@ -48,11 +60,12 @@ func main() {
 		log.Fatalf("[Violet] Failed to open database '%s'...", *databasePath)
 	}
 
-	allowedDomains := domains.New(db)                                  // load allowed domains
-	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath)) // load certificate manager
-	reverseProxy := proxy.CreateHybridReverseProxy()                   // load reverse proxy
-	dynamicFavicons := favicons.New(db, *inkscapeCmd)                  // load dynamic favicon provider
-	dynamicErrorPages := errorPages.New(os.DirFS(*errorPagePath))      // load dynamic error page provider
+	allowedDomains := domains.New(db)                                               // load allowed domains
+	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath), *selfSigned) // load certificate manager
+	reverseProxy := proxy.CreateHybridReverseProxy()                                // load reverse proxy
+	dynamicFavicons := favicons.New(db, *inkscapeCmd)                               // load dynamic favicon provider
+	dynamicErrorPages := errorPages.New(os.DirFS(*errorPagePath))                   // load dynamic error page provider
+	dynamicRouter := router.NewManager(db, reverseProxy)                            // load dynamic router manager
 
 	// struct containing config for the http servers
 	srvConf := &servers.Conf{
@@ -65,16 +78,41 @@ func main() {
 		Favicons:    dynamicFavicons,
 		Verify:      nil, // TODO: add mjwt verify support
 		ErrorPages:  dynamicErrorPages,
-		Proxy:       reverseProxy,
+		Router:      dynamicRouter,
 	}
 
+	var srvApi, srvHttp, srvHttps *http.Server
 	if *apiListen != "" {
-		servers.NewApiServer(srvConf, utils.MultiCompilable{allowedDomains})
+		srvApi = servers.NewApiServer(srvConf, utils.MultiCompilable{allowedDomains, allowedCerts, dynamicFavicons, dynamicErrorPages, dynamicRouter})
 	}
 	if *httpListen != "" {
-		servers.NewHttpServer(srvConf)
+		srvHttp = servers.NewHttpServer(srvConf)
 	}
 	if *httpsListen != "" {
-		servers.NewHttpsServer(srvConf)
+		srvHttps = servers.NewHttpsServer(srvConf)
 	}
+
+	// Wait for exit signal
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	<-sc
+	fmt.Println()
+
+	// Stop servers
+	log.Printf("[Violet] Stopping...")
+	n := time.Now()
+
+	// close http servers
+	if srvApi != nil {
+		srvApi.Close()
+	}
+	if srvHttp != nil {
+		srvHttp.Close()
+	}
+	if srvHttps != nil {
+		srvHttps.Close()
+	}
+
+	log.Printf("[Violet] Took '%s' to shutdown\n", time.Now().Sub(n))
+	log.Println("[Violet] Goodbye")
 }

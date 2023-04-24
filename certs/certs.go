@@ -3,34 +3,55 @@ package certs
 import (
 	"code.mrmelon54.com/melon/certgen"
 	"crypto/tls"
+	"crypto/x509/pkix"
 	"fmt"
 	"github.com/MrMelon54/violet/utils"
 	"io/fs"
 	"log"
+	"math/big"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 // Certs is the certificate loader and management system.
 type Certs struct {
 	cDir fs.FS
 	kDir fs.FS
+	ss   bool
 	s    *sync.RWMutex
 	m    map[string]*tls.Certificate
+	ca   *certgen.CertGen
+	sn   atomic.Int64
 }
 
 // New creates a new cert list
-func New(certDir fs.FS, keyDir fs.FS) *Certs {
-	a := &Certs{
+func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
+	c := &Certs{
 		cDir: certDir,
 		kDir: keyDir,
+		ss:   selfCert,
 		s:    &sync.RWMutex{},
 		m:    make(map[string]*tls.Certificate),
 	}
+	if c.ss {
+		ca, err := certgen.MakeCaTls(pkix.Name{
+			Country:            []string{"GB"},
+			Organization:       []string{"Violet"},
+			OrganizationalUnit: []string{"Development"},
+			SerialNumber:       "0",
+			CommonName:         fmt.Sprintf("%d.violet.test", time.Now().Unix()),
+		}, big.NewInt(0))
+		if err != nil {
+			log.Fatalln("Failed to generate CA cert for self-signed mode:", err)
+		}
+		c.ca = ca
+	}
 
 	// run compile to get the initial data
-	a.Compile()
-	return a
+	c.Compile()
+	return c
 }
 
 func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
@@ -41,6 +62,24 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 	// lookup and return cert
 	if cert, ok := c.m[domain]; ok {
 		return cert
+	}
+
+	// if self-signed certificate is enabled then generate a certificate
+	if c.ss {
+		sn := c.sn.Add(1)
+		serverTls, err := certgen.MakeServerTls(c.ca, pkix.Name{
+			Country:            []string{"GB"},
+			Organization:       []string{domain},
+			OrganizationalUnit: []string{domain},
+			SerialNumber:       fmt.Sprintf("%d", sn),
+			CommonName:         domain,
+		}, big.NewInt(sn), []string{domain}, nil)
+		if err != nil {
+			return nil
+		}
+		leaf := serverTls.GetTlsLeaf()
+		c.m[domain] = &leaf
+		return &leaf
 	}
 
 	// lookup and return wildcard cert
@@ -55,6 +94,11 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 }
 
 func (c *Certs) Compile() {
+	// don't bother compiling in self-signed mode
+	if c.ss {
+		return
+	}
+
 	// async compile magic
 	go func() {
 		// new map

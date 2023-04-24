@@ -2,11 +2,15 @@ package domains
 
 import (
 	"database/sql"
+	_ "embed"
 	"github.com/MrMelon54/violet/utils"
 	"log"
 	"strings"
 	"sync"
 )
+
+//go:embed create-table-domains.sql
+var createTableDomains string
 
 // Domains is the domain list and management system.
 type Domains struct {
@@ -24,7 +28,7 @@ func New(db *sql.DB) *Domains {
 	}
 
 	// init domains table
-	_, err := a.db.Exec(`create table if not exists domains (id integer primary key autoincrement, domain varchar)`)
+	_, err := a.db.Exec(createTableDomains)
 	if err != nil {
 		log.Printf("[WARN] Failed to generate 'domains' table\n")
 		return nil
@@ -37,11 +41,7 @@ func New(db *sql.DB) *Domains {
 
 // IsValid returns true if a domain is valid.
 func (d *Domains) IsValid(host string) bool {
-	// remove the port
-	domain, ok := utils.GetDomainWithoutPort(host)
-	if !ok {
-		return false
-	}
+	domain, _, _ := utils.SplitDomainPort(host, 0)
 
 	// read lock for safety
 	d.s.RLock()
@@ -88,7 +88,7 @@ func (d *Domains) internalCompile(m map[string]struct{}) error {
 	log.Println("[Domains] Updating domains from database")
 
 	// sql or something?
-	rows, err := d.db.Query("select name from domains where enabled = true")
+	rows, err := d.db.Query(`select domain from domains where active = 1`)
 	if err != nil {
 		return err
 	}

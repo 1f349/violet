@@ -3,7 +3,6 @@ package servers
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/MrMelon54/violet/router"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/gorilla/mux"
 	"github.com/sethvargo/go-limiter/httplimit"
@@ -17,20 +16,9 @@ import (
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
 func NewHttpsServer(conf *Conf) *http.Server {
-	r := router.New(conf.Proxy)
-
 	s := &http.Server{
-		Addr: conf.HttpsListen,
-		Handler: setupRateLimiter(300).Middleware(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			rw.Header().Set("Content-Type", "text/html")
-			rw.WriteHeader(http.StatusNotImplemented)
-			_, _ = rw.Write([]byte("<pre>"))
-			_, _ = rw.Write([]byte(fmt.Sprintf("%#v\n", req)))
-			_, _ = rw.Write([]byte("</pre>"))
-			_ = r
-			// TODO: serve from router and proxy
-			// r.ServeHTTP(rw, req)
-		})),
+		Addr:                         conf.HttpsListen,
+		Handler:                      setupRateLimiter(300).Middleware(conf.Router),
 		DisableGeneralOptionsHandler: false,
 		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			// error out on invalid domains
