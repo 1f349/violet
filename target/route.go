@@ -1,12 +1,10 @@
 package target
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/rs/cors"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -16,7 +14,7 @@ import (
 
 // serveApiCors outputs the cors headers to make APIs work.
 var serveApiCors = cors.New(cors.Options{
-	AllowedOrigins: []string{"*"},
+	AllowedOrigins: []string{"*"}, // allow all origins for api requests
 	AllowedHeaders: []string{"Content-Type", "Authorization"},
 	AllowedMethods: []string{
 		http.MethodGet,
@@ -26,8 +24,6 @@ var serveApiCors = cors.New(cors.Options{
 		http.MethodPatch,
 		http.MethodDelete,
 		http.MethodConnect,
-		http.MethodOptions,
-		http.MethodTrace,
 	},
 	AllowCredentials: true,
 })
@@ -111,12 +107,6 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		p = "/"
 	}
 
-	// TODO: don't just copy the body into a buffer as this is really slow
-	buf := new(bytes.Buffer)
-	if req.Body != nil {
-		_, _ = io.Copy(buf, req.Body)
-	}
-
 	// create a new URL
 	u := &url.URL{
 		Scheme:   scheme,
@@ -125,8 +115,11 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		RawQuery: req.URL.RawQuery,
 	}
 
+	// close the incoming body after use
+	defer req.Body.Close()
+
 	// create the internal request
-	req2, err := http.NewRequest(req.Method, u.String(), buf)
+	req2, err := http.NewRequest(req.Method, u.String(), req.Body)
 	if err != nil {
 		log.Printf("[ServeRoute::ServeHTTP()] Error generating new request: %s\n", err)
 		utils.RespondHttpStatus(rw, http.StatusBadGateway)
