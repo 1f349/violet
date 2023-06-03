@@ -14,7 +14,7 @@ import (
 // endpoints for the reverse proxy.
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
-// acme challenges, this is used for Lets Encrypt HTTP verification.
+// acme challenges, this is used for Let's Encrypt HTTP verification.
 func NewHttpServer(conf *Conf) *http.Server {
 	r := httprouter.New()
 	var secureExtend string

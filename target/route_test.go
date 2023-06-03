@@ -1,6 +1,7 @@
 package target
 
 import (
+	"github.com/MrMelon54/violet/proxy"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -9,14 +10,17 @@ import (
 
 type proxyTester struct {
 	got bool
-	rw  http.ResponseWriter
 	req *http.Request
 }
 
-func (p *proxyTester) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (p *proxyTester) makeHybridTransport() *proxy.HybridTransport {
+	return proxy.NewHybridTransportWithCalls(p, p)
+}
+
+func (p *proxyTester) RoundTrip(req *http.Request) (*http.Response, error) {
 	p.got = true
-	p.rw = rw
 	p.req = req
+	return &http.Response{StatusCode: http.StatusOK}, nil
 }
 
 func TestRoute_FullHost(t *testing.T) {
@@ -38,7 +42,7 @@ func TestRoute_ServeHTTP(t *testing.T) {
 	}
 	for _, i := range a {
 		pt := &proxyTester{}
-		i.Proxy = pt
+		i.Proxy = pt.makeHybridTransport()
 		res := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "https://www.example.com/hello/world", nil)
 		i.ServeHTTP(res, req)
@@ -62,7 +66,7 @@ func TestRoute_ServeHTTP_Cors(t *testing.T) {
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "https://www.example.com/test", nil)
 	req.Header.Set("Origin", "https://test.example.com")
-	i := &Route{Host: "1.1.1.1", Port: 8080, Path: "/hello", Cors: true, Proxy: pt}
+	i := &Route{Host: "1.1.1.1", Port: 8080, Path: "/hello", Cors: true, Proxy: pt.makeHybridTransport()}
 	i.ServeHTTP(res, req)
 
 	assert.True(t, pt.got)

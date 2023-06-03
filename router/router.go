@@ -3,10 +3,10 @@ package router
 import (
 	"fmt"
 	"github.com/MrMelon54/trie"
+	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/target"
 	"github.com/MrMelon54/violet/utils"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 )
 
@@ -14,10 +14,10 @@ type Router struct {
 	route    map[string]*trie.Trie[target.Route]
 	redirect map[string]*trie.Trie[target.Redirect]
 	notFound http.Handler
-	proxy    *httputil.ReverseProxy
+	proxy    *proxy.HybridTransport
 }
 
-func New(proxy *httputil.ReverseProxy) *Router {
+func New(proxy *proxy.HybridTransport) *Router {
 	return &Router{
 		route:    make(map[string]*trie.Trie[target.Route]),
 		redirect: make(map[string]*trie.Trie[target.Redirect]),

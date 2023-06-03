@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/target"
 	"github.com/MrMelon54/violet/utils"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 	"sync"
 )
@@ -19,7 +19,7 @@ type Manager struct {
 	db *sql.DB
 	s  *sync.RWMutex
 	r  *Router
-	p  *httputil.ReverseProxy
+	p  *proxy.HybridTransport
 }
 
 var (
@@ -35,7 +35,7 @@ var (
 
 // NewManager create a new manager, initialises the routes and redirects tables
 // in the database and runs a first time compile.
-func NewManager(db *sql.DB, proxy *httputil.ReverseProxy) *Manager {
+func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 	m := &Manager{
 		db: db,
 		s:  &sync.RWMutex{},

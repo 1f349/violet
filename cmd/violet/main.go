@@ -62,7 +62,7 @@ func main() {
 
 	allowedDomains := domains.New(db)                                               // load allowed domains
 	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath), *selfSigned) // load certificate manager
-	reverseProxy := proxy.CreateHybridReverseProxy()                                // load reverse proxy
+	reverseProxy := proxy.NewHybridTransport()                                      // load reverse proxy
 	dynamicFavicons := favicons.New(db, *inkscapeCmd)                               // load dynamic favicon provider
 	dynamicErrorPages := errorPages.New(os.DirFS(*errorPagePath))                   // load dynamic error page provider
 	dynamicRouter := router.NewManager(db, reverseProxy)                            // load dynamic router manager

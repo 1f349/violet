@@ -3,8 +3,8 @@ package servers
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/MrMelon54/violet/favicons"
 	"github.com/MrMelon54/violet/utils"
-	"github.com/gorilla/mux"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
 	"log"
@@ -18,7 +18,7 @@ import (
 func NewHttpsServer(conf *Conf) *http.Server {
 	s := &http.Server{
 		Addr:                         conf.HttpsListen,
-		Handler:                      setupRateLimiter(300).Middleware(conf.Router),
+		Handler:                      setupRateLimiter(300, setupFaviconMiddleware(conf.Favicons, conf.Router)),
 		DisableGeneralOptionsHandler: false,
 		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			// error out on invalid domains
@@ -51,7 +51,7 @@ func NewHttpsServer(conf *Conf) *http.Server {
 
 // setupRateLimiter is an internal function to create a middleware to manage
 // rate limits.
-func setupRateLimiter(rateLimit uint64) mux.MiddlewareFunc {
+func setupRateLimiter(rateLimit uint64, next http.Handler) http.Handler {
 	// create memory store
 	store, err := memorystore.New(&memorystore.Config{
 		Tokens:   rateLimit,
@@ -66,5 +66,45 @@ func setupRateLimiter(rateLimit uint64) mux.MiddlewareFunc {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	return middleware.Handle
+	return middleware.Handle(next)
+}
+
+func setupFaviconMiddleware(fav *favicons.Favicons, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Header.Get("X-Violet-Raw-Favicon") != "1" {
+			switch req.URL.Path {
+			case "/favicon.svg":
+				icons := fav.GetIcons(req.Host)
+				raw, err := icons.ProduceSvg()
+				if err != nil {
+					utils.RespondVioletError(rw, http.StatusTeapot, "No SVG icon available")
+					return
+				}
+				rw.WriteHeader(http.StatusOK)
+				_, _ = rw.Write(raw)
+				return
+			case "/favicon.png":
+				icons := fav.GetIcons(req.Host)
+				raw, err := icons.ProducePng()
+				if err != nil {
+					utils.RespondVioletError(rw, http.StatusTeapot, "No PNG icon available")
+					return
+				}
+				rw.WriteHeader(http.StatusOK)
+				_, _ = rw.Write(raw)
+				return
+			case "/favicon.ico":
+				icons := fav.GetIcons(req.Host)
+				raw, err := icons.ProduceIco()
+				if err != nil {
+					utils.RespondVioletError(rw, http.StatusTeapot, "No ICO icon available")
+					return
+				}
+				rw.WriteHeader(http.StatusOK)
+				_, _ = rw.Write(raw)
+				return
+			}
+		}
+		next.ServeHTTP(rw, req)
+	})
 }

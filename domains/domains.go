@@ -48,12 +48,15 @@ func (d *Domains) IsValid(host string) bool {
 	defer d.s.RUnlock()
 
 	// check root domains `www.example.com`, `example.com`, `com`
-	// TODO: could be faster using indexes and cropping the string?
-	n := strings.Split(domain, ".")
-	for i := 0; i < len(n); i++ {
-		if _, ok := d.m[strings.Join(n[i:], ".")]; ok {
+	for len(domain) > 0 {
+		if _, ok := d.m[domain]; ok {
 			return true
 		}
+		n := strings.IndexByte(domain, '.')
+		if n == -1 {
+			break
+		}
+		domain = domain[n+1:]
 	}
 	return false
 }

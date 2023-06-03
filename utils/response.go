@@ -9,3 +9,8 @@ import (
 func RespondHttpStatus(rw http.ResponseWriter, status int) {
 	http.Error(rw, fmt.Sprintf("%d %s\n", status, http.StatusText(status)), status)
 }
+
+func RespondVioletError(rw http.ResponseWriter, status int, msg string) {
+	rw.Header().Set("X-Violet-Error", msg)
+	RespondHttpStatus(rw, status)
+}

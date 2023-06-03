@@ -29,6 +29,7 @@ func New(dir fs.FS) *ErrorPages {
 		generic: func(rw http.ResponseWriter, code int) {
 			// if status text is empty then the code is unknown
 			a := http.StatusText(code)
+			fmt.Printf("%d - %s\n", code, a)
 			if a != "" {
 				// output in "xxx Error Text" format
 				http.Error(rw, fmt.Sprintf("%d %s\n", code, a), code)
@@ -64,10 +65,12 @@ func (e *ErrorPages) Compile() {
 		errorPageMap := make(map[int]func(rw http.ResponseWriter))
 
 		// compile map and check errors
-		err := e.internalCompile(errorPageMap)
-		if err != nil {
-			log.Printf("[Certs] Compile failed: %s\n", err)
-			return
+		if e.dir != nil {
+			err := e.internalCompile(errorPageMap)
+			if err != nil {
+				log.Printf("[Certs] Compile failed: %s\n", err)
+				return
+			}
 		}
 
 		// lock while replacing the map
