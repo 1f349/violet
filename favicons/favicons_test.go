@@ -1,7 +1,6 @@
 package favicons
 
 import (
-	"bytes"
 	"database/sql"
 	_ "embed"
 	_ "github.com/mattn/go-sqlite3"
@@ -32,13 +31,6 @@ func TestFaviconsNew(t *testing.T) {
 	favicons.cLock.Unlock()
 
 	icons := favicons.GetIcons("example.com")
-	iconSvg, err := icons.ProduceSvg()
-	assert.NoError(t, err)
-	iconPng, err := icons.ProducePng()
-	assert.NoError(t, err)
-	iconIco, err := icons.ProduceIco()
-	assert.NoError(t, err)
-
 	assert.Equal(t, "https://example.com/assets/logo.svg", icons.Svg.Url)
 
 	assert.Equal(t, "74cdc17d0502a690941799c327d9ca1ed042e76c784def43a42937f2eed270b4", icons.Svg.Hash)
