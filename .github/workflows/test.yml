@@ -12,5 +12,6 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
     - uses: actions/checkout@v3
+    - run: sudo apt-get install inkscape -y
     - run: go build ./cmd/violet/
     - run: go test ./...
