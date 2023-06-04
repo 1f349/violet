@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/julienschmidt/httprouter"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -27,60 +26,42 @@ func NewHttpServer(conf *Conf) *http.Server {
 	}
 
 	// Endpoint for acme challenge outputs
-	r.GET("/.well-known/acme-challenge/{key}", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		if h, ok := utils.GetDomainWithoutPort(req.Host); ok {
-			// check if the host is valid
-			if !conf.Domains.IsValid(req.Host) {
-				http.Error(rw, fmt.Sprintf("%d %s\n", 420, "Invalid host"), 420)
-				return
-			}
+	r.GET("/.well-known/acme-challenge/:key", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		h := utils.GetDomainWithoutPort(req.Host)
 
-			// check if the key is valid
-			key := params.ByName("key")
-			if key == "" {
-				rw.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			// prepare for executing query
-			prepare, err := conf.DB.Prepare("select value from acme_challenges limit 1 where domain = ? and key = ?")
-			if err != nil {
-				utils.RespondHttpStatus(rw, http.StatusInternalServerError)
-				return
-			}
-
-			// query the row and extract the value
-			row := prepare.QueryRow(h, key)
-			var value string
-			err = row.Scan(&value)
-			if err != nil {
-				utils.RespondHttpStatus(rw, http.StatusInternalServerError)
-				return
-			}
-
-			// output response
-			rw.WriteHeader(http.StatusOK)
-			_, _ = rw.Write([]byte(value))
+		// check if the host is valid
+		if !conf.Domains.IsValid(req.Host) {
+			utils.RespondVioletError(rw, http.StatusBadRequest, "Invalid host")
+			return
 		}
-		rw.WriteHeader(http.StatusNotFound)
+
+		// check if the key is valid
+		value := conf.Acme.Get(h, params.ByName("key"))
+		if value == "" {
+			rw.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		// output response
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte(value))
 	})
 
 	// All other paths lead here and are forwarded to HTTPS
 	r.NotFound = http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		if h, ok := utils.GetDomainWithoutPort(req.Host); ok {
-			u := &url.URL{
-				Scheme:   "https",
-				Host:     h + secureExtend,
-				Path:     req.URL.Path,
-				RawPath:  req.URL.RawPath,
-				RawQuery: req.URL.RawQuery,
-			}
-			utils.FastRedirect(rw, req, u.String(), http.StatusPermanentRedirect)
+		h := utils.GetDomainWithoutPort(req.Host)
+		u := &url.URL{
+			Scheme:   "https",
+			Host:     h + secureExtend,
+			Path:     req.URL.Path,
+			RawPath:  req.URL.RawPath,
+			RawQuery: req.URL.RawQuery,
 		}
+		utils.FastRedirect(rw, req, u.String(), http.StatusPermanentRedirect)
 	})
 
 	// Create and run http server
-	s := &http.Server{
+	return &http.Server{
 		Addr:              conf.HttpListen,
 		Handler:           r,
 		ReadTimeout:       time.Minute,
@@ -89,7 +70,4 @@ func NewHttpServer(conf *Conf) *http.Server {
 		IdleTimeout:       time.Minute,
 		MaxHeaderBytes:    2500,
 	}
-	log.Printf("[HTTP] Starting HTTP server on: '%s'\n", s.Addr)
-	go utils.RunBackgroundHttp("HTTP", s)
-	return s
 }

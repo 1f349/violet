@@ -33,6 +33,7 @@ var (
 	httpListen    = flag.String("http", "0.0.0.0:80", "address for http listening")
 	httpsListen   = flag.String("https", "0.0.0.0:443", "address for https listening")
 	inkscapeCmd   = flag.String("inkscape", "inkscape", "Path to inkscape binary")
+	rateLimit     = flag.Uint64("ratelimit", 300, "Rate limit (max requests per minute)")
 )
 
 func main() {
@@ -61,6 +62,7 @@ func main() {
 	}
 
 	allowedDomains := domains.New(db)                                               // load allowed domains
+	acmeChallenges := utils.NewAcmeChallenge()                                      // load acme challenge store
 	allowedCerts := certs.New(os.DirFS(*certPath), os.DirFS(*keyPath), *selfSigned) // load certificate manager
 	reverseProxy := proxy.NewHybridTransport()                                      // load reverse proxy
 	dynamicFavicons := favicons.New(db, *inkscapeCmd)                               // load dynamic favicon provider
@@ -72,8 +74,10 @@ func main() {
 		ApiListen:   *apiListen,
 		HttpListen:  *httpListen,
 		HttpsListen: *httpsListen,
+		RateLimit:   *rateLimit,
 		DB:          db,
 		Domains:     allowedDomains,
+		Acme:        acmeChallenges,
 		Certs:       allowedCerts,
 		Favicons:    dynamicFavicons,
 		Verify:      nil, // TODO: add mjwt verify support
@@ -84,12 +88,18 @@ func main() {
 	var srvApi, srvHttp, srvHttps *http.Server
 	if *apiListen != "" {
 		srvApi = servers.NewApiServer(srvConf, utils.MultiCompilable{allowedDomains, allowedCerts, dynamicFavicons, dynamicErrorPages, dynamicRouter})
+		log.Printf("[API] Starting API server on: '%s'\n", srvApi.Addr)
+		go utils.RunBackgroundHttp("API", srvApi)
 	}
 	if *httpListen != "" {
 		srvHttp = servers.NewHttpServer(srvConf)
+		log.Printf("[HTTP] Starting HTTP server on: '%s'\n", srvHttp.Addr)
+		go utils.RunBackgroundHttp("HTTP", srvHttp)
 	}
 	if *httpsListen != "" {
 		srvHttps = servers.NewHttpsServer(srvConf)
+		log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", srvHttps.Addr)
+		go utils.RunBackgroundHttps("HTTPS", srvHttps)
 	}
 
 	// Wait for exit signal

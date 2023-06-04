@@ -82,7 +82,7 @@ func (e *ErrorPages) Compile() {
 
 func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) error {
 	// try to read dir
-	files, err := fs.ReadDir(e.dir, "")
+	files, err := fs.ReadDir(e.dir, ".")
 	if err != nil {
 		return fmt.Errorf("failed to read error pages dir: %w", err)
 	}
@@ -101,7 +101,7 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 		ext := filepath.Ext(name)
 
 		// if the extension is not 'html' then ignore the file
-		if ext != "html" {
+		if ext != ".html" {
 			log.Printf("[ErrorPages] WARNING: ignoring non '.html' file in error pages directory: '%s'\n", name)
 			continue
 		}

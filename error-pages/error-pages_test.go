@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"testing/fstest"
 )
 
 func TestErrorPages_ServeError(t *testing.T) {
@@ -28,4 +29,36 @@ func TestErrorPages_ServeError(t *testing.T) {
 	a, err = io.ReadAll(res.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, "469 Unknown Error Code\n\n", string(a))
+}
+
+func TestErrorPagesWithCustom(t *testing.T) {
+	fs := fstest.MapFS{
+		"418.html": {
+			Data: []byte("418 Custom Error Page\n"),
+		},
+		"469.html": {
+			Data: []byte("469 Custom Error Page\n"),
+		},
+	}
+
+	errorPages := New(fs)
+	assert.NoError(t, errorPages.internalCompile(errorPages.m))
+
+	rec := httptest.NewRecorder()
+	errorPages.ServeError(rec, http.StatusTeapot)
+	res := rec.Result()
+	assert.Equal(t, http.StatusTeapot, res.StatusCode)
+	assert.Equal(t, "418 I'm a teapot", res.Status)
+	a, err := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "418 Custom Error Page\n", string(a))
+
+	rec = httptest.NewRecorder()
+	errorPages.ServeError(rec, 469)
+	res = rec.Result()
+	assert.Equal(t, 469, res.StatusCode)
+	assert.Equal(t, "469 ", res.Status)
+	a, err = io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "469 Custom Error Page\n", string(a))
 }

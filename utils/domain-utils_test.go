@@ -18,12 +18,16 @@ func TestSplitDomainPort(t *testing.T) {
 }
 
 func TestDomainWithoutPort(t *testing.T) {
-	domain, ok := GetDomainWithoutPort("www.example.com:5612")
-	assert.True(t, ok, "Output should be true")
+	domain := GetDomainWithoutPort("www.example.com:5612")
 	assert.Equal(t, "www.example.com", domain)
 
-	domain, ok = GetDomainWithoutPort("example.com:443")
-	assert.True(t, ok, "Output should be true")
+	domain = GetDomainWithoutPort("example.com:443")
+	assert.Equal(t, "example.com", domain)
+
+	domain = GetDomainWithoutPort("www.example.com")
+	assert.Equal(t, "www.example.com", domain)
+
+	domain = GetDomainWithoutPort("example.com")
 	assert.Equal(t, "example.com", domain)
 }
 

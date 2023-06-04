@@ -27,13 +27,13 @@ func SplitDomainPort(host string, defaultPort int) (domain string, port int, ok 
 // without the port.
 //
 // example.com:443 => example.com
-func GetDomainWithoutPort(domain string) (string, bool) {
+func GetDomainWithoutPort(domain string) string {
 	// if a valid index isn't found then return false
 	n := strings.LastIndexByte(domain, ':')
 	if n == -1 {
-		return "", false
+		return domain
 	}
-	return domain[:n], true
+	return domain[:n]
 }
 
 // ReplaceSubdomainWithWildcard returns the domain with the subdomain replaced

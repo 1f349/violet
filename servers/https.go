@@ -16,10 +16,9 @@ import (
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
 func NewHttpsServer(conf *Conf) *http.Server {
-	s := &http.Server{
-		Addr:                         conf.HttpsListen,
-		Handler:                      setupRateLimiter(300, setupFaviconMiddleware(conf.Favicons, conf.Router)),
-		DisableGeneralOptionsHandler: false,
+	return &http.Server{
+		Addr:    conf.HttpsListen,
+		Handler: setupRateLimiter(conf.RateLimit, setupFaviconMiddleware(conf.Favicons, conf.Router)),
 		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			// error out on invalid domains
 			if !conf.Domains.IsValid(info.ServerName) {
@@ -41,12 +40,9 @@ func NewHttpsServer(conf *Conf) *http.Server {
 		IdleTimeout:       150 * time.Second,
 		MaxHeaderBytes:    4096000,
 		ConnState: func(conn net.Conn, state http.ConnState) {
-			fmt.Printf("%s => %s: %s\n", conn.LocalAddr(), conn.RemoteAddr(), state.String())
+			fmt.Printf("[HTTPS] %s => %s: %s\n", conn.LocalAddr(), conn.RemoteAddr(), state.String())
 		},
 	}
-	log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", s.Addr)
-	go utils.RunBackgroundHttps("HTTPS", s)
-	return s
 }
 
 // setupRateLimiter is an internal function to create a middleware to manage

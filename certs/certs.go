@@ -121,6 +121,10 @@ func (c *Certs) Compile() {
 // internalCompile is a hidden internal method for loading the certificate and
 // key files
 func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
+	if c.cDir == nil {
+		return nil
+	}
+
 	// try to read dir
 	files, err := fs.ReadDir(c.cDir, "")
 	if err != nil {
