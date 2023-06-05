@@ -126,7 +126,7 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 	}
 
 	// try to read dir
-	files, err := fs.ReadDir(c.cDir, "")
+	files, err := fs.ReadDir(c.cDir, ".")
 	if err != nil {
 		return fmt.Errorf("failed to read cert dir: %w", err)
 	}
@@ -143,7 +143,7 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 		// get file name and extension
 		name := i.Name()
 		ext := filepath.Ext(name)
-		keyName := name[:len(name)-len(ext)] + "key"
+		keyName := name[:len(name)-len(ext)] + ".key"
 
 		// try to read cert file
 		certData, err := fs.ReadFile(c.cDir, name)
