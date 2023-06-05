@@ -118,7 +118,9 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// close the incoming body after use
-	defer req.Body.Close()
+	if req.Body != nil {
+		defer req.Body.Close()
+	}
 
 	// create the internal request
 	req2, err := http.NewRequest(req.Method, u.String(), req.Body)
