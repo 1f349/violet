@@ -1,7 +1,9 @@
 package favicons
 
 import (
+	"bytes"
 	"github.com/stretchr/testify/assert"
+	"image/png"
 	"testing"
 )
 
@@ -18,4 +20,9 @@ func TestFaviconList_PreProcess(t *testing.T) {
 	assert.Equal(t, "74cdc17d0502a690941799c327d9ca1ed042e76c784def43a42937f2eed270b4", icons.Svg.Hash)
 	assert.NotEqual(t, "", icons.Png.Hash)
 	assert.NotEqual(t, "", icons.Ico.Hash)
+
+	// verify png bytes are a valid png image
+	pngRaw := bytes.NewBuffer(icons.Png.Raw)
+	_, err := png.Decode(pngRaw)
+	assert.NoError(t, err)
 }
