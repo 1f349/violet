@@ -39,7 +39,7 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 	m := &Manager{
 		db: db,
 		s:  &sync.RWMutex{},
-		r:  New(nil),
+		r:  New(proxy),
 		p:  proxy,
 	}
 

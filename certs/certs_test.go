@@ -1,9 +1,9 @@
 package certs
 
 import (
-	"code.mrmelon54.com/melon/certgen"
 	"crypto/x509/pkix"
 	"fmt"
+	"github.com/MrMelon54/certgen"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -16,24 +16,28 @@ func TestCertsNew_Lookup(t *testing.T) {
 	// type to test that certificate files can be found and read correctly. This
 	// uses a MapFS for performance during tests.
 
-	ca, err := certgen.MakeCaTls(pkix.Name{
+	ca, err := certgen.MakeCaTls(4096, pkix.Name{
 		Country:            []string{"GB"},
 		Organization:       []string{"Violet"},
 		OrganizationalUnit: []string{"Development"},
 		SerialNumber:       "0",
 		CommonName:         fmt.Sprintf("%d.violet.test", time.Now().Unix()),
-	}, big.NewInt(0))
+	}, big.NewInt(0), func(now time.Time) time.Time {
+		return now.AddDate(10, 0, 0)
+	})
 	assert.NoError(t, err)
 
 	domain := "example.com"
 	sn := int64(1)
-	serverTls, err := certgen.MakeServerTls(ca, pkix.Name{
+	serverTls, err := certgen.MakeServerTls(ca, 4096, pkix.Name{
 		Country:            []string{"GB"},
 		Organization:       []string{domain},
 		OrganizationalUnit: []string{domain},
 		SerialNumber:       fmt.Sprintf("%d", sn),
 		CommonName:         domain,
-	}, big.NewInt(sn), []string{domain}, nil)
+	}, big.NewInt(sn), func(now time.Time) time.Time {
+		return now.AddDate(10, 0, 0)
+	}, []string{domain}, nil)
 	assert.NoError(t, err)
 
 	certDir := fstest.MapFS{

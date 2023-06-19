@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/mrmelon54/png2ico"
+	"github.com/MrMelon54/png2ico"
 	"image/png"
 	"io"
 	"net/http"

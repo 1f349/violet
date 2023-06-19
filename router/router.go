@@ -86,6 +86,8 @@ func (r *Router) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if r.serveRouteHTTP(rw, req, wildcardHost) {
 		return
 	}
+
+	utils.RespondVioletError(rw, http.StatusTeapot, "No route")
 }
 
 func (r *Router) serveRouteHTTP(rw http.ResponseWriter, req *http.Request, host string) bool {

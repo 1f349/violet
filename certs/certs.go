@@ -1,10 +1,10 @@
 package certs
 
 import (
-	"code.mrmelon54.com/melon/certgen"
 	"crypto/tls"
 	"crypto/x509/pkix"
 	"fmt"
+	"github.com/MrMelon54/certgen"
 	"github.com/MrMelon54/violet/utils"
 	"io/fs"
 	"log"
@@ -36,13 +36,15 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 		m:    make(map[string]*tls.Certificate),
 	}
 	if c.ss {
-		ca, err := certgen.MakeCaTls(pkix.Name{
+		ca, err := certgen.MakeCaTls(4096, pkix.Name{
 			Country:            []string{"GB"},
 			Organization:       []string{"Violet"},
 			OrganizationalUnit: []string{"Development"},
 			SerialNumber:       "0",
 			CommonName:         fmt.Sprintf("%d.violet.test", time.Now().Unix()),
-		}, big.NewInt(0))
+		}, big.NewInt(0), func(now time.Time) time.Time {
+			return now.AddDate(10, 0, 0)
+		})
 		if err != nil {
 			log.Fatalln("Failed to generate CA cert for self-signed mode:", err)
 		}
@@ -67,13 +69,15 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 	// if self-signed certificate is enabled then generate a certificate
 	if c.ss {
 		sn := c.sn.Add(1)
-		serverTls, err := certgen.MakeServerTls(c.ca, pkix.Name{
+		serverTls, err := certgen.MakeServerTls(c.ca, 4096, pkix.Name{
 			Country:            []string{"GB"},
 			Organization:       []string{domain},
 			OrganizationalUnit: []string{domain},
 			SerialNumber:       fmt.Sprintf("%d", sn),
 			CommonName:         domain,
-		}, big.NewInt(sn), []string{domain}, nil)
+		}, big.NewInt(sn), func(now time.Time) time.Time {
+			return now.AddDate(10, 0, 0)
+		}, []string{domain}, nil)
 		if err != nil {
 			return nil
 		}

@@ -47,7 +47,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 			rec := httptest.NewRecorder()
 			srv.Handler.ServeHTTP(rec, req)
 			res := rec.Result()
-			assert.Equal(t, http.StatusOK, res.StatusCode)
+			assert.Equal(t, http.StatusTeapot, res.StatusCode)
 		}()
 	}
 	wg.Wait()

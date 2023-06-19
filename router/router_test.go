@@ -174,15 +174,6 @@ var (
 	}
 )
 
-type fakeTransport struct{ req *http.Request }
-
-func (f *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	f.req = req
-	rec := httptest.NewRecorder()
-	rec.WriteHeader(http.StatusOK)
-	return rec.Result(), nil
-}
-
 func TestRouter_AddRoute(t *testing.T) {
 	transSecure := &fakeTransport{}
 	transInsecure := &fakeTransport{}
@@ -266,4 +257,43 @@ func outputUrl(u *url.URL) string {
 		return ""
 	}
 	return u.String()
+}
+
+func TestRouter_AddWildcardRoute(t *testing.T) {
+	transSecure := &fakeTransport{}
+	transInsecure := &fakeTransport{}
+
+	for _, i := range routeTests {
+		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
+		dst := i.dst
+		dst.Host = "127.0.0.1"
+		dst.Port = 8080
+		t.Logf("Running tests for %#v\n", dst)
+		r.AddRoute("example.com", i.path, dst)
+		for k, v := range i.tests {
+			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: k}
+			req, _ := http.NewRequest(http.MethodGet, u1.String(), nil)
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, req)
+			if v == "" {
+				if transSecure.req != nil {
+					t.Logf("Test URL: %#v\n", req.URL)
+					t.Log(r.redirect["example.com"].String())
+					t.Fatalf("%s => %s\n", k, v)
+				}
+			} else {
+				if transSecure.req == nil {
+					t.Logf("Test URL: %#v\n", req.URL)
+					t.Log(r.route["example.com"].String())
+					t.Fatalf("\nexpected %s => %s\n     got %s => %s\n", k, v, k, "")
+				}
+				if v != transSecure.req.URL.Path {
+					t.Logf("Test URL: %#v\n", req.URL)
+					t.Log(r.route["example.com"].String())
+					t.Fatalf("\nexpected %s => %s\n     got %s => %s\n", k, v, k, transSecure.req.URL.Path)
+				}
+				transSecure.req = nil
+			}
+		}
+	}
 }

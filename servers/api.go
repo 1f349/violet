@@ -1,10 +1,10 @@
 package servers
 
 import (
-	"code.mrmelon54.com/melon/summer-utils/claims/auth"
+	"github.com/MrMelon54/mjwt"
+	"github.com/MrMelon54/mjwt/auth"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/julienschmidt/httprouter"
-	"github.com/mrmelon54/mjwt"
 	"net/http"
 	"time"
 )
@@ -68,7 +68,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 	}
 }
 
-func hasPerms(verify mjwt.Provider, req *http.Request, perm string) bool {
+func hasPerms(verify mjwt.Verifier, req *http.Request, perm string) bool {
 	// Get bearer token
 	bearer := utils.GetBearer(req)
 	if bearer == "" {

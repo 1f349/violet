@@ -3,10 +3,10 @@ package servers
 import (
 	"crypto/tls"
 	"database/sql"
+	"github.com/MrMelon54/mjwt"
 	errorPages "github.com/MrMelon54/violet/error-pages"
 	"github.com/MrMelon54/violet/favicons"
 	"github.com/MrMelon54/violet/router"
-	"github.com/mrmelon54/mjwt"
 )
 
 // Conf stores the shared configuration for the API, HTTP and HTTPS servers.
@@ -20,7 +20,7 @@ type Conf struct {
 	Acme        AcmeChallengeProvider
 	Certs       CertProvider
 	Favicons    *favicons.Favicons
-	Verify      mjwt.Provider
+	Verify      mjwt.Verifier
 	ErrorPages  *errorPages.ErrorPages
 	Router      *router.Manager
 }

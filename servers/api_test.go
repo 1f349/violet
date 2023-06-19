@@ -1,12 +1,12 @@
 package servers
 
 import (
-	"code.mrmelon54.com/melon/summer-utils/claims"
-	"code.mrmelon54.com/melon/summer-utils/claims/auth"
 	"crypto/rand"
 	"crypto/rsa"
+	"github.com/MrMelon54/mjwt"
+	"github.com/MrMelon54/mjwt/auth"
+	"github.com/MrMelon54/mjwt/claims"
 	"github.com/MrMelon54/violet/utils"
-	"github.com/mrmelon54/mjwt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -20,7 +20,7 @@ type fakeDomains struct{}
 
 func (f *fakeDomains) IsValid(host string) bool { return host == "example.com" }
 
-func genSnakeOilProv() mjwt.Provider {
+func genSnakeOilProv() mjwt.Signer {
 	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		panic(err)
