@@ -72,6 +72,9 @@ func setupFaviconMiddleware(fav *favicons.Favicons, next http.Handler) http.Hand
 			switch req.URL.Path {
 			case "/favicon.svg", "/favicon.png", "/favicon.ico":
 				icons := fav.GetIcons(req.Host)
+				if icons == nil {
+					break
+				}
 				raw, contentType, err := icons.ProduceForExt(path.Ext(req.URL.Path))
 				if err != nil {
 					utils.RespondVioletError(rw, http.StatusTeapot, "No icon available")
