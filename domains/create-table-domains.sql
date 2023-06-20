@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS domains
 (
     id     INTEGER PRIMARY KEY AUTOINCREMENT,
-    domain TEXT,
+    domain TEXT UNIQUE,
     active INTEGER DEFAULT 1
 );

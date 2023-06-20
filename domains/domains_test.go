@@ -12,7 +12,7 @@ func TestDomainsNew(t *testing.T) {
 	assert.NoError(t, err)
 
 	domains := New(db)
-	_, err = db.Exec("insert into domains (domain, active) values (?, ?)", "example.com", 1)
+	_, err = db.Exec("INSERT OR IGNORE INTO domains (domain, active) VALUES (?, ?)", "example.com", 1)
 	assert.NoError(t, err)
 	domains.Compile()
 
@@ -31,7 +31,7 @@ func TestDomains_IsValid(t *testing.T) {
 	assert.NoError(t, err)
 
 	domains := New(db)
-	_, err = domains.db.Exec("insert into domains (domain, active) values (?, ?)", "example.com", 1)
+	_, err = domains.db.Exec("INSERT OR IGNORE INTO domains (domain, active) VALUES (?, ?)", "example.com", 1)
 	assert.NoError(t, err)
 
 	domains.s.Lock()

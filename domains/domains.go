@@ -3,6 +3,7 @@ package domains
 import (
 	"database/sql"
 	_ "embed"
+	"github.com/MrMelon54/rescheduler"
 	"github.com/MrMelon54/violet/utils"
 	"log"
 	"strings"
@@ -17,6 +18,7 @@ type Domains struct {
 	db *sql.DB
 	s  *sync.RWMutex
 	m  map[string]struct{}
+	r  *rescheduler.Rescheduler
 }
 
 // New creates a new domain list
@@ -26,6 +28,7 @@ func New(db *sql.DB) *Domains {
 		s:  &sync.RWMutex{},
 		m:  make(map[string]struct{}),
 	}
+	a.r = rescheduler.NewRescheduler(a.threadCompile)
 
 	// init domains table
 	_, err := a.db.Exec(createTableDomains)
@@ -64,25 +67,27 @@ func (d *Domains) IsValid(host string) bool {
 // Compile downloads the list of domains from the database and loads them into
 // memory for faster lookups.
 //
-// This method is asynchronous and uses locks for safety.
+// This method makes use of the rescheduler instead of just ignoring multiple
+// calls.
 func (d *Domains) Compile() {
-	// async compile magic
-	go func() {
-		// new map
-		domainMap := make(map[string]struct{})
+	d.r.Run()
+}
 
-		// compile map and check errors
-		err := d.internalCompile(domainMap)
-		if err != nil {
-			log.Printf("[Domains] Compile failed: %s\n", err)
-			return
-		}
+func (d *Domains) threadCompile() {
+	// new map
+	domainMap := make(map[string]struct{})
 
-		// lock while replacing the map
-		d.s.Lock()
-		d.m = domainMap
-		d.s.Unlock()
-	}()
+	// compile map and check errors
+	err := d.internalCompile(domainMap)
+	if err != nil {
+		log.Printf("[Domains] Compile failed: %s\n", err)
+		return
+	}
+
+	// lock while replacing the map
+	d.s.Lock()
+	d.m = domainMap
+	d.s.Unlock()
 }
 
 // internalCompile is a hidden internal method for querying the database during
@@ -109,4 +114,22 @@ func (d *Domains) internalCompile(m map[string]struct{}) error {
 
 	// check for errors
 	return rows.Err()
+}
+
+func (d *Domains) Put(domain string, active bool) {
+	d.s.Lock()
+	defer d.s.Unlock()
+	_, err := d.db.Exec("INSERT OR REPLACE INTO domains (domain, active) VALUES (?, ?)", domain, active)
+	if err != nil {
+		log.Printf("[Violet] Database error: %s\n", err)
+	}
+}
+
+func (d *Domains) Delete(domain string) {
+	d.s.Lock()
+	defer d.s.Unlock()
+	_, err := d.db.Exec("INSERT OR REPLACE INTO domains (domain, active) VALUES (?, ?)", domain, false)
+	if err != nil {
+		log.Printf("[Violet] Database error: %s\n", err)
+	}
 }

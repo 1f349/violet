@@ -5,6 +5,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"github.com/MrMelon54/certgen"
+	"github.com/MrMelon54/rescheduler"
 	"github.com/MrMelon54/violet/utils"
 	"io/fs"
 	"log"
@@ -24,6 +25,7 @@ type Certs struct {
 	m    map[string]*tls.Certificate
 	ca   *certgen.CertGen
 	sn   atomic.Int64
+	r    *rescheduler.Rescheduler
 }
 
 // New creates a new cert list
@@ -35,6 +37,9 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 		s:    &sync.RWMutex{},
 		m:    make(map[string]*tls.Certificate),
 	}
+	c.r = rescheduler.NewRescheduler(c.threadCompile)
+
+	// in self-signed mode generate a CA certificate to sign other certificates
 	if c.ss {
 		ca, err := certgen.MakeCaTls(4096, pkix.Name{
 			Country:            []string{"GB"},
@@ -81,6 +86,8 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 		if err != nil {
 			return nil
 		}
+
+		// save the generated leaf for loading if the domain is requested again
 		leaf := serverTls.GetTlsLeaf()
 		c.m[domain] = &leaf
 		return &leaf
@@ -97,29 +104,33 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 	return nil
 }
 
+// Compile loads the certificates and keys from the directories.
+//
+// This method makes use of the rescheduler instead of just ignoring multiple
+// calls.
 func (c *Certs) Compile() {
 	// don't bother compiling in self-signed mode
 	if c.ss {
 		return
 	}
+	c.r.Run()
+}
 
-	// async compile magic
-	go func() {
-		// new map
-		certMap := make(map[string]*tls.Certificate)
+func (c *Certs) threadCompile() {
+	// new map
+	certMap := make(map[string]*tls.Certificate)
 
-		// compile map and check errors
-		err := c.internalCompile(certMap)
-		if err != nil {
-			log.Printf("[Certs] Compile failed: %s\n", err)
-			return
-		}
+	// compile map and check errors
+	err := c.internalCompile(certMap)
+	if err != nil {
+		log.Printf("[Certs] Compile failed: %s\n", err)
+		return
+	}
 
-		// lock while replacing the map
-		c.s.Lock()
-		c.m = certMap
-		c.s.Unlock()
-	}()
+	// lock while replacing the map
+	c.s.Lock()
+	c.m = certMap
+	c.s.Unlock()
 }
 
 // internalCompile is a hidden internal method for loading the certificate and

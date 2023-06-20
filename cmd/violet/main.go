@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"github.com/MrMelon54/mjwt"
 	"github.com/MrMelon54/violet/certs"
 	"github.com/MrMelon54/violet/domains"
 	errorPages "github.com/MrMelon54/violet/error-pages"
@@ -25,6 +26,7 @@ import (
 // flags - each one has a usage field lol
 var (
 	databasePath  = flag.String("db", "", "/path/to/database.sqlite : path to the database file")
+	mjwtPubKey    = flag.String("mjwt", "", "/path/to/mjwt-public-key.pem : path to the pem encoded rsa public key file")
 	keyPath       = flag.String("keys", "", "/path/to/keys : path contains the keys with names matching the certificates and '.key' extensions")
 	certPath      = flag.String("certs", "", "/path/to/certificates : path contains the certificates to load in armoured PEM encoding")
 	selfSigned    = flag.Bool("ss", false, "enable self-signed certificate mode")
@@ -33,26 +35,35 @@ var (
 	httpListen    = flag.String("http", "0.0.0.0:80", "address for http listening")
 	httpsListen   = flag.String("https", "0.0.0.0:443", "address for https listening")
 	inkscapeCmd   = flag.String("inkscape", "inkscape", "Path to inkscape binary")
-	rateLimit     = flag.Uint64("ratelimit", 300, "Rate limit (max requests per minute)")
+	rateLimit     = flag.Uint64("rate-limit", 300, "Rate limit (max requests per minute)")
 )
 
 func main() {
 	log.Println("[Violet] Starting...")
 	flag.Parse()
 
-	if *certPath != "" {
-		// create path to cert dir
-		err := os.MkdirAll(*certPath, os.ModePerm)
-		if err != nil {
-			log.Fatalf("[Violet] Failed to create certificate path '%s' does not exist", *certPath)
+	// the cert and key paths are useless in self-signed mode
+	if !*selfSigned {
+		if *certPath != "" {
+			// create path to cert dir
+			err := os.MkdirAll(*certPath, os.ModePerm)
+			if err != nil {
+				log.Fatalf("[Violet] Failed to create certificate path '%s' does not exist", *certPath)
+			}
+		}
+		if *keyPath != "" {
+			// create path to key dir
+			err := os.MkdirAll(*keyPath, os.ModePerm)
+			if err != nil {
+				log.Fatalf("[Violet] Failed to create certificate key path '%s' does not exist", *keyPath)
+			}
 		}
 	}
-	if *keyPath != "" {
-		// create path to key dir
-		err := os.MkdirAll(*keyPath, os.ModePerm)
-		if err != nil {
-			log.Fatalf("[Violet] Failed to create certificate key path '%s' does not exist", *keyPath)
-		}
+
+	// load the MJWT RSA public key from a pem encoded file
+	mjwtVerify, err := mjwt.NewMJwtVerifierFromFile(*mjwtPubKey)
+	if err != nil {
+		log.Fatalf("[Violet] Failed to load MJWT verifier public key from file: '%s'", *mjwtPubKey)
 	}
 
 	// open sqlite database
@@ -80,7 +91,7 @@ func main() {
 		Acme:        acmeChallenges,
 		Certs:       allowedCerts,
 		Favicons:    dynamicFavicons,
-		Verify:      nil, // TODO: add mjwt verify support
+		Verify:      mjwtVerify,
 		ErrorPages:  dynamicErrorPages,
 		Router:      dynamicRouter,
 	}

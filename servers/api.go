@@ -28,6 +28,28 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 		rw.WriteHeader(http.StatusAccepted)
 	})
 
+	// Endpoint for domains
+	r.PUT("/domain/:domain", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		if !hasPerms(conf.Verify, req, "violet:domains") {
+			utils.RespondHttpStatus(rw, http.StatusForbidden)
+			return
+		}
+
+		// add domain with active state
+		q := req.URL.Query()
+		conf.Domains.Put(params.ByName("domain"), q.Get("active") == "1")
+	})
+	r.DELETE("/domain/:domain", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		if !hasPerms(conf.Verify, req, "violet:domains") {
+			utils.RespondHttpStatus(rw, http.StatusForbidden)
+			return
+		}
+
+		// add domain with active state
+		q := req.URL.Query()
+		conf.Domains.Put(params.ByName("domain"), q.Get("active") == "1")
+	})
+
 	// Endpoint for acme-challenge
 	r.PUT("/acme-challenge/:domain/:key/:value", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		if !hasPerms(conf.Verify, req, "violet:acme-challenge") {

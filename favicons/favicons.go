@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/MrMelon54/rescheduler"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"sync"
@@ -17,6 +18,7 @@ type Favicons struct {
 	cmd        string
 	cLock      *sync.RWMutex
 	faviconMap map[string]*FaviconList
+	r          *rescheduler.Rescheduler
 }
 
 // New creates a new dynamic favicon generator
@@ -27,6 +29,7 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 		cLock:      &sync.RWMutex{},
 		faviconMap: make(map[string]*FaviconList),
 	}
+	f.r = rescheduler.NewRescheduler(f.threadCompile)
 
 	// init favicons table
 	_, err := f.db.Exec(`create table if not exists favicons (id integer primary key autoincrement, host varchar, svg varchar, png varchar, ico varchar)`)
@@ -40,29 +43,6 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 	return f
 }
 
-// Compile downloads the list of favicon mappings from the database and loads
-// them and the target favicons into memory for faster lookups
-func (f *Favicons) Compile() {
-	// async compile magic
-	go func() {
-		// new map
-		favicons := make(map[string]*FaviconList)
-
-		// compile map and check errors
-		err := f.internalCompile(favicons)
-		if err != nil {
-			// log compile errors
-			log.Printf("[Favicons] Compile failed: %s\n", err)
-			return
-		}
-
-		// lock while replacing the map
-		f.cLock.Lock()
-		f.faviconMap = favicons
-		f.cLock.Unlock()
-	}()
-}
-
 // GetIcons returns the favicon list for the provided host or nil if no
 // icon is found or generated
 func (f *Favicons) GetIcons(host string) *FaviconList {
@@ -74,9 +54,36 @@ func (f *Favicons) GetIcons(host string) *FaviconList {
 	return f.faviconMap[host]
 }
 
+// Compile downloads the list of favicon mappings from the database and loads
+// them and the target favicons into memory for faster lookups
+//
+// This method makes use of the rescheduler instead of just ignoring multiple
+// calls.
+func (f *Favicons) Compile() {
+	f.r.Run()
+}
+
+func (f *Favicons) threadCompile() {
+	// new map
+	favicons := make(map[string]*FaviconList)
+
+	// compile map and check errors
+	err := f.internalCompile(favicons)
+	if err != nil {
+		// log compile errors
+		log.Printf("[Favicons] Compile failed: %s\n", err)
+		return
+	}
+
+	// lock while replacing the map
+	f.cLock.Lock()
+	f.faviconMap = favicons
+	f.cLock.Unlock()
+}
+
 // internalCompile is a hidden internal method for loading and generating all
 // favicons.
-func (f *Favicons) internalCompile(faviconMap map[string]*FaviconList) error {
+func (f *Favicons) internalCompile(m map[string]*FaviconList) error {
 	// query all rows in database
 	query, err := f.db.Query(`select host, svg, png, ico from favicons`)
 	if err != nil {
@@ -100,7 +107,7 @@ func (f *Favicons) internalCompile(faviconMap map[string]*FaviconList) error {
 		}
 
 		// save the favicon list to the map
-		faviconMap[host] = l
+		m[host] = l
 
 		// run the pre-process in a separate goroutine
 		g.Go(func() error {

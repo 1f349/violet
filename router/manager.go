@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
+	"github.com/MrMelon54/rescheduler"
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/target"
 	"github.com/MrMelon54/violet/utils"
@@ -20,6 +21,7 @@ type Manager struct {
 	s  *sync.RWMutex
 	r  *Router
 	p  *proxy.HybridTransport
+	z  *rescheduler.Rescheduler
 }
 
 var (
@@ -42,6 +44,7 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 		r:  New(proxy),
 		p:  proxy,
 	}
+	m.z = rescheduler.NewRescheduler(m.threadCompile)
 
 	// init routes table
 	_, err := m.db.Exec(createTableRoutes)
@@ -69,22 +72,24 @@ func (m *Manager) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (m *Manager) Compile() {
-	go func() {
-		// new router
-		router := New(m.p)
+	m.z.Run()
+}
 
-		// compile router and check errors
-		err := m.internalCompile(router)
-		if err != nil {
-			log.Printf("[Manager] Compile failed: %s\n", err)
-			return
-		}
+func (m *Manager) threadCompile() {
+	// new router
+	router := New(m.p)
 
-		// lock while replacing router
-		m.s.Lock()
-		m.r = router
-		m.s.Unlock()
-	}()
+	// compile router and check errors
+	err := m.internalCompile(router)
+	if err != nil {
+		log.Printf("[Manager] Compile failed: %s\n", err)
+		return
+	}
+
+	// lock while replacing router
+	m.s.Lock()
+	m.r = router
+	m.s.Unlock()
 }
 
 // internalCompile is a hidden internal method for querying the database during
