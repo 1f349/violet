@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/MrMelon54/png2ico"
 	"image/png"
@@ -16,6 +17,27 @@ type FaviconList struct {
 	Ico *FaviconImage // can be generated from png with wrapper
 	Png *FaviconImage // can be generated from svg with inkscape
 	Svg *FaviconImage
+}
+
+var ErrInvalidFaviconExtension = errors.New("invalid favicon extension")
+
+// ProduceForExt outputs the bytes for the ico/png/svg icon and the HTTP
+// Content-Type header to output.
+func (l *FaviconList) ProduceForExt(ext string) (raw []byte, contentType string, err error) {
+	switch ext {
+	case ".ico":
+		contentType = "image/x-icon"
+		raw, err = l.ProduceIco()
+	case ".png":
+		contentType = "image/png"
+		raw, err = l.ProducePng()
+	case ".svg":
+		contentType = "image/svg+xml"
+		raw, err = l.ProduceSvg()
+	default:
+		err = ErrInvalidFaviconExtension
+	}
+	return
 }
 
 // ProduceIco outputs the bytes of the ico icon or an error

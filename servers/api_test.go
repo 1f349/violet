@@ -18,9 +18,10 @@ var snakeOilProv = genSnakeOilProv()
 
 type fakeDomains struct{}
 
-func (f *fakeDomains) IsValid(host string) bool       { return host == "example.com" }
-func (f *fakeDomains) Put(domain string, active bool) {}
-func (f *fakeDomains) Delete(domain string)           {}
+func (f *fakeDomains) IsValid(host string) bool { return host == "example.com" }
+func (f *fakeDomains) Put(string, bool)         {}
+func (f *fakeDomains) Delete(string)            {}
+func (f *fakeDomains) Compile()                 {}
 
 func genSnakeOilProv() mjwt.Signer {
 	key, err := rsa.GenerateKey(rand.Reader, 1024)

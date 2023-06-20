@@ -16,7 +16,7 @@ func TestRespondHttpStatus(t *testing.T) {
 	assert.Equal(t, "418 I'm a teapot", res.Status)
 	a, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "418 I'm a teapot\n\n", string(a))
+	assert.Equal(t, "418 I'm a teapot\n", string(a))
 }
 
 func TestRespondVioletError(t *testing.T) {
@@ -27,6 +27,6 @@ func TestRespondVioletError(t *testing.T) {
 	assert.Equal(t, "418 I'm a teapot", res.Status)
 	a, err := io.ReadAll(res.Body)
 	assert.NoError(t, err)
-	assert.Equal(t, "418 I'm a teapot\n\n", string(a))
+	assert.Equal(t, "418 I'm a teapot\n", string(a))
 	assert.Equal(t, "Hidden Error Message", res.Header.Get("X-Violet-Error"))
 }

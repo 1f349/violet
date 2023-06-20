@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"path"
 	"time"
 )
 
@@ -69,33 +70,14 @@ func setupFaviconMiddleware(fav *favicons.Favicons, next http.Handler) http.Hand
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("X-Violet-Raw-Favicon") != "1" {
 			switch req.URL.Path {
-			case "/favicon.svg":
+			case "/favicon.svg", "/favicon.png", "/favicon.ico":
 				icons := fav.GetIcons(req.Host)
-				raw, err := icons.ProduceSvg()
+				raw, contentType, err := icons.ProduceForExt(path.Ext(req.URL.Path))
 				if err != nil {
-					utils.RespondVioletError(rw, http.StatusTeapot, "No SVG icon available")
+					utils.RespondVioletError(rw, http.StatusTeapot, "No icon available")
 					return
 				}
-				rw.WriteHeader(http.StatusOK)
-				_, _ = rw.Write(raw)
-				return
-			case "/favicon.png":
-				icons := fav.GetIcons(req.Host)
-				raw, err := icons.ProducePng()
-				if err != nil {
-					utils.RespondVioletError(rw, http.StatusTeapot, "No PNG icon available")
-					return
-				}
-				rw.WriteHeader(http.StatusOK)
-				_, _ = rw.Write(raw)
-				return
-			case "/favicon.ico":
-				icons := fav.GetIcons(req.Host)
-				raw, err := icons.ProduceIco()
-				if err != nil {
-					utils.RespondVioletError(rw, http.StatusTeapot, "No ICO icon available")
-					return
-				}
+				rw.Header().Set("Content-Type", contentType)
 				rw.WriteHeader(http.StatusOK)
 				_, _ = rw.Write(raw)
 				return
