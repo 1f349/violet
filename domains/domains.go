@@ -36,9 +36,6 @@ func New(db *sql.DB) *Domains {
 		log.Printf("[WARN] Failed to generate 'domains' table\n")
 		return nil
 	}
-
-	// run compile to get the initial data
-	a.Compile()
 	return a
 }
 

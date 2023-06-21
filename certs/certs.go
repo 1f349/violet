@@ -37,7 +37,11 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 		s:    &sync.RWMutex{},
 		m:    make(map[string]*tls.Certificate),
 	}
-	c.r = rescheduler.NewRescheduler(c.threadCompile)
+
+	// the rescheduler isn't even used in self cert mode so why initialise it
+	if !selfCert {
+		c.r = rescheduler.NewRescheduler(c.threadCompile)
+	}
 
 	// in self-signed mode generate a CA certificate to sign other certificates
 	if c.ss {
@@ -55,9 +59,6 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 		}
 		c.ca = ca
 	}
-
-	// run compile to get the initial data
-	c.Compile()
 	return c
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/MrMelon54/violet/utils"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 	"sync"
 )
@@ -59,9 +60,6 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 		log.Printf("[WARN] Failed to generate 'redirects' table\n")
 		return nil
 	}
-
-	// run compile to get the initial router
-	m.Compile()
 	return m
 }
 
@@ -165,6 +163,15 @@ func (m *Manager) internalCompile(router *Router) error {
 
 	// check for errors
 	return rows.Err()
+}
+
+func (m *Manager) Add(source string, route target.Route, active bool) {
+	m.s.Lock()
+	defer m.s.Unlock()
+	_, err := m.db.Exec(`INSERT INTO routes (source, pre, destination, abs, cors, secure_mode, forward_host, forward_addr, ignore_cert, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, source, route.Pre, path.Join(route.Host, route.Path), route.Abs, route.Cors, route.SecureMode, route.ForwardHost, route.ForwardAddr, route.IgnoreCert, active)
+	if err != nil {
+		log.Printf("[Violet] Database error: %s\n", err)
+	}
 }
 
 // addRoute is an alias to parse the src and dst then add the route

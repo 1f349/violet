@@ -52,6 +52,11 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 		conf.Domains.Compile()
 	})
 
+	// Endpoint for routes
+	r.POST("/route", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+
+	})
+
 	// Endpoint for acme-challenge
 	r.PUT("/acme-challenge/:domain/:key/:value", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		if !hasPerms(conf.Verify, req, "violet:acme-challenge") {

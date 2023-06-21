@@ -78,7 +78,7 @@ func (e *ErrorPages) threadCompile() {
 	if e.dir != nil {
 		err := e.internalCompile(errorPageMap)
 		if err != nil {
-			log.Printf("[Certs] Compile failed: %s\n", err)
+			log.Printf("[ErrorPages] Compile failed: %s\n", err)
 			return
 		}
 	}
