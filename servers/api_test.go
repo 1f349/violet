@@ -34,10 +34,7 @@ func genSnakeOilProv() mjwt.Signer {
 func genSnakeOilKey(perm string) string {
 	p := claims.NewPermStorage()
 	p.Set(perm)
-	val, err := snakeOilProv.GenerateJwt("abc", "abc", 5*time.Minute, auth.AccessTokenClaims{
-		UserId: 1,
-		Perms:  p,
-	})
+	val, err := snakeOilProv.GenerateJwt("abc", "abc", nil, 5*time.Minute, auth.AccessTokenClaims{Perms: p})
 	if err != nil {
 		panic(err)
 	}
@@ -54,7 +51,7 @@ func TestNewApiServer_Compile(t *testing.T) {
 	apiConf := &Conf{
 		Domains: &fakeDomains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Verify:  snakeOilProv,
+		Signer:  snakeOilProv,
 	}
 	f := &fakeCompilable{}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{f})
@@ -81,7 +78,7 @@ func TestNewApiServer_AcmeChallenge_Put(t *testing.T) {
 	apiConf := &Conf{
 		Domains: &fakeDomains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Verify:  snakeOilProv,
+		Signer:  snakeOilProv,
 	}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{})
 	acmeKey := genSnakeOilKey("violet:acme-challenge")
@@ -125,7 +122,7 @@ func TestNewApiServer_AcmeChallenge_Delete(t *testing.T) {
 	apiConf := &Conf{
 		Domains: &fakeDomains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Verify:  snakeOilProv,
+		Signer:  snakeOilProv,
 	}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{})
 	acmeKey := genSnakeOilKey("violet:acme-challenge")

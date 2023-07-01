@@ -18,7 +18,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 
 	// Endpoint for compile action
 	r.POST("/compile", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-		if !hasPerms(conf.Verify, req, "violet:compile") {
+		if !hasPerms(conf.Signer, req, "violet:compile") {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return
 		}
@@ -30,7 +30,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 
 	// Endpoint for domains
 	r.PUT("/domain/:domain", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		if !hasPerms(conf.Verify, req, "violet:domains") {
+		if !hasPerms(conf.Signer, req, "violet:domains") {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return
 		}
@@ -41,7 +41,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 		conf.Domains.Compile()
 	})
 	r.DELETE("/domain/:domain", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		if !hasPerms(conf.Verify, req, "violet:domains") {
+		if !hasPerms(conf.Signer, req, "violet:domains") {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return
 		}
@@ -59,7 +59,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 
 	// Endpoint for acme-challenge
 	r.PUT("/acme-challenge/:domain/:key/:value", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		if !hasPerms(conf.Verify, req, "violet:acme-challenge") {
+		if !hasPerms(conf.Signer, req, "violet:acme-challenge") {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return
 		}
@@ -72,7 +72,7 @@ func NewApiServer(conf *Conf, compileTarget utils.MultiCompilable) *http.Server 
 		rw.WriteHeader(http.StatusAccepted)
 	})
 	r.DELETE("/acme-challenge/:domain/:key", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		if !hasPerms(conf.Verify, req, "violet:acme-challenge") {
+		if !hasPerms(conf.Signer, req, "violet:acme-challenge") {
 			utils.RespondHttpStatus(rw, http.StatusForbidden)
 			return
 		}

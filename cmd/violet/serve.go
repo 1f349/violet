@@ -18,9 +18,11 @@ import (
 	"github.com/google/subcommands"
 	"io/fs"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -63,26 +65,24 @@ func (s *serveCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{
 		return subcommands.ExitFailure
 	}
 
-	normalLoad(conf)
+	// working directory is the parent of the config file
+	wd := filepath.Dir(s.configPath)
+	normalLoad(conf, wd)
 	return subcommands.ExitSuccess
 }
 
-func normalLoad(conf startUpConfig) {
+func normalLoad(conf startUpConfig, wd string) {
 	// the cert and key paths are useless in self-signed mode
 	if !conf.SelfSigned {
-		if conf.CertPath != "" {
-			// create path to cert dir
-			err := os.MkdirAll(conf.CertPath, os.ModePerm)
-			if err != nil {
-				log.Fatalf("[Violet] Failed to create certificate path '%s'", conf.CertPath)
-			}
+		// create path to cert dir
+		err := os.MkdirAll(filepath.Join(wd, "certs"), os.ModePerm)
+		if err != nil {
+			log.Fatal("[Violet] Failed to create certificate path")
 		}
-		if conf.KeyPath != "" {
-			// create path to key dir
-			err := os.MkdirAll(conf.KeyPath, os.ModePerm)
-			if err != nil {
-				log.Fatalf("[Violet] Failed to create certificate key path '%s'", conf.KeyPath)
-			}
+		// create path to key dir
+		err = os.MkdirAll(filepath.Join(wd, "keys"), os.ModePerm)
+		if err != nil {
+			log.Fatal("[Violet] Failed to create certificate key path")
 		}
 	}
 
@@ -96,25 +96,28 @@ func normalLoad(conf startUpConfig) {
 		}
 	}
 
-	// load the MJWT RSA public key from a pem encoded file
-	mjwtVerify, err := mjwt.NewMJwtVerifierFromFile(conf.MjwtPubKey)
+	// load the MJWT RSA private key from a pem encoded file
+	mjwtSigner, err := mjwt.NewMJwtSignerFromFileOrCreate(conf.SignerIssuer, filepath.Join(wd, "violet.private.pem"), rand.New(rand.NewSource(time.Now().UnixNano())), 4096)
 	if err != nil {
-		log.Fatalf("[Violet] Failed to load MJWT verifier public key from file: '%s'", conf.MjwtPubKey)
+		log.Fatal("[Violet] Failed to load MJWT verifier public key from file: ", err)
 	}
 
 	// open sqlite database
-	db, err := sql.Open("sqlite3", conf.Database)
+	db, err := sql.Open("sqlite3", "violet.db.sqlite")
 	if err != nil {
-		log.Fatalf("[Violet] Failed to open database '%s'...", conf.Database)
+		log.Fatal("[Violet] Failed to open database")
 	}
 
-	allowedDomains := domains.New(db)                                                           // load allowed domains
-	acmeChallenges := utils.NewAcmeChallenge()                                                  // load acme challenge store
-	allowedCerts := certs.New(os.DirFS(conf.CertPath), os.DirFS(conf.KeyPath), conf.SelfSigned) // load certificate manager
-	hybridTransport := proxy.NewHybridTransport()                                               // load reverse proxy
-	dynamicFavicons := favicons.New(db, conf.InkscapeCmd)                                       // load dynamic favicon provider
-	dynamicErrorPages := errorPages.New(errorPageDir)                                           // load dynamic error page provider
-	dynamicRouter := router.NewManager(db, hybridTransport)                                     // load dynamic router manager
+	certDir := os.DirFS(filepath.Join(wd, "certs"))
+	keyDir := os.DirFS(filepath.Join(wd, "keys"))
+
+	allowedDomains := domains.New(db)                           // load allowed domains
+	acmeChallenges := utils.NewAcmeChallenge()                  // load acme challenge store
+	allowedCerts := certs.New(certDir, keyDir, conf.SelfSigned) // load certificate manager
+	hybridTransport := proxy.NewHybridTransport()               // load reverse proxy
+	dynamicFavicons := favicons.New(db, conf.InkscapeCmd)       // load dynamic favicon provider
+	dynamicErrorPages := errorPages.New(errorPageDir)           // load dynamic error page provider
+	dynamicRouter := router.NewManager(db, hybridTransport)     // load dynamic router manager
 
 	// struct containing config for the http servers
 	srvConf := &servers.Conf{
@@ -127,7 +130,7 @@ func normalLoad(conf startUpConfig) {
 		Acme:        acmeChallenges,
 		Certs:       allowedCerts,
 		Favicons:    dynamicFavicons,
-		Verify:      mjwtVerify,
+		Signer:      mjwtSigner,
 		ErrorPages:  dynamicErrorPages,
 		Router:      dynamicRouter,
 	}

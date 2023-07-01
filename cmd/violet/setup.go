@@ -59,14 +59,15 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 	// store answers from questions
 	var answers struct {
-		SelfSigned  bool
-		ErrorPages  bool
-		ApiListen   string
-		HttpListen  string
-		HttpsListen string
-		RateLimit   uint64
-		FirstDomain string
-		ApiUrl      string
+		SelfSigned   bool
+		ErrorPages   bool
+		ApiListen    string
+		HttpListen   string
+		HttpsListen  string
+		RateLimit    uint64
+		FirstDomain  string
+		ApiUrl       string
+		SignerIssuer string
 	}
 
 	// ask main questions
@@ -104,6 +105,10 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 			},
 		},
 		{
+			Name:   "SignerIssuer",
+			Prompt: &survey.Input{Message: "Issuer name to sign API tokens with", Default: "Violet"},
+		},
+		{
 			Name:     "FirstDomain",
 			Prompt:   &survey.Input{Message: "First domain", Default: "example.com", Help: "Setup the first domain or it will be more difficult to setup later"},
 			Validate: survey.Required,
@@ -130,10 +135,6 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	confEncode := json.NewEncoder(createConf)
 	confEncode.SetIndent("", "  ")
 	err = confEncode.Encode(startUpConfig{
-		Database:      filepath.Join(wdAbs, "violet.sqlite"),
-		MjwtPubKey:    filepath.Join(wdAbs, "mjwt.public.key"),
-		CertPath:      filepath.Join(wdAbs, "certs"),
-		KeyPath:       filepath.Join(wdAbs, "keys"),
 		SelfSigned:    answers.SelfSigned,
 		ErrorPagePath: errorPagePath,
 		Listen: listenConfig{
@@ -141,8 +142,9 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 			Http:  answers.HttpListen,
 			Https: answers.HttpsListen,
 		},
-		InkscapeCmd: "inkscape",
-		RateLimit:   answers.RateLimit,
+		InkscapeCmd:  "inkscape",
+		RateLimit:    answers.RateLimit,
+		SignerIssuer: answers.SignerIssuer,
 	})
 	if err != nil {
 		fmt.Println("[Violet] Failed to write config file: ", err)

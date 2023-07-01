@@ -20,7 +20,7 @@ type Conf struct {
 	Acme        AcmeChallengeProvider
 	Certs       CertProvider
 	Favicons    *favicons.Favicons
-	Verify      mjwt.Verifier
+	Signer      mjwt.Verifier
 	ErrorPages  *errorPages.ErrorPages
 	Router      *router.Manager
 }

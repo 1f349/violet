@@ -4,6 +4,8 @@ github.com/MrMelon54/certgen v0.0.1 h1:ycWdZ2RlxQ5qSuejeBVv4aXjGo5hdqqL4j4EjrXnF
 github.com/MrMelon54/certgen v0.0.1/go.mod h1:GHflVlSbtFLJZLpN1oWyUvDBRrR8qCWiwZLXCCnS2Gc=
 github.com/MrMelon54/mjwt v0.0.2 h1:jDqyPnFloh80XdSmZ6jt9qhUj/ULcoQ4QSHXPdkAIE4=
 github.com/MrMelon54/mjwt v0.0.2/go.mod h1:HzY8P6Je+ovS/fwK5sILRMq5mnZT4+WuFRc98LBy7z4=
+github.com/MrMelon54/mjwt v0.1.1 h1:m+aTpxbhQCrOPKHN170DQMFR5r938LkviU38unob5Jw=
+github.com/MrMelon54/mjwt v0.1.1/go.mod h1:oYrDBWK09Hju98xb+bRQ0wy+RuAzacxYvKYOZchR2Tk=
 github.com/MrMelon54/png2ico v1.0.1 h1:zJoSSl4OkvSIMWGyGPvb8fWNa0KrUvMIjgNGLNLJhVQ=
 github.com/MrMelon54/png2ico v1.0.1/go.mod h1:NOv3tO4497mInG+3tcFkIohmxCywUwMLU8WNxJZLVmU=
 github.com/MrMelon54/rescheduler v0.0.1 h1:gzNvL8X81M00uYN0i9clFVrXCkG1UuLNYxDcvjKyBqo=

@@ -14,7 +14,7 @@ func TestNewHttpServer_AcmeChallenge(t *testing.T) {
 	httpConf := &Conf{
 		Domains: &fakeDomains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Verify:  snakeOilProv,
+		Signer:  snakeOilProv,
 	}
 	srv := NewHttpServer(httpConf)
 	httpConf.Acme.Put("example.com", "456", "456def")
