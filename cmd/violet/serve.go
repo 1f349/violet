@@ -18,7 +18,6 @@ import (
 	"github.com/google/subcommands"
 	"io/fs"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -96,14 +95,14 @@ func normalLoad(conf startUpConfig, wd string) {
 		}
 	}
 
-	// load the MJWT RSA private key from a pem encoded file
-	mjwtSigner, err := mjwt.NewMJwtSignerFromFileOrCreate(conf.SignerIssuer, filepath.Join(wd, "violet.private.pem"), rand.New(rand.NewSource(time.Now().UnixNano())), 4096)
+	// load the MJWT RSA public key from a pem encoded file
+	mJwtVerify, err := mjwt.NewMJwtVerifierFromFile(filepath.Join(wd, "signer.public.pem"))
 	if err != nil {
-		log.Fatal("[Violet] Failed to load MJWT verifier public key from file: ", err)
+		log.Fatalf("[Violet] Failed to load MJWT verifier public key from file '%s': %s", filepath.Join(wd, "signer.public.pem"), err)
 	}
 
 	// open sqlite database
-	db, err := sql.Open("sqlite3", "violet.db.sqlite")
+	db, err := sql.Open("sqlite3", filepath.Join(wd, "violet.db.sqlite"))
 	if err != nil {
 		log.Fatal("[Violet] Failed to open database")
 	}
@@ -130,7 +129,7 @@ func normalLoad(conf startUpConfig, wd string) {
 		Acme:        acmeChallenges,
 		Certs:       allowedCerts,
 		Favicons:    dynamicFavicons,
-		Signer:      mjwtSigner,
+		Signer:      mJwtVerify,
 		ErrorPages:  dynamicErrorPages,
 		Router:      dynamicRouter,
 	}

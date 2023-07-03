@@ -6,7 +6,6 @@ type startUpConfig struct {
 	Listen        listenConfig `json:"listen"`
 	InkscapeCmd   string       `json:"inkscape"`
 	RateLimit     uint64       `json:"rate_limit"`
-	SignerIssuer  string       `json:"signer_issuer"`
 }
 
 type listenConfig struct {
