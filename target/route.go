@@ -167,6 +167,11 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	} else {
 		resp, err = r.Proxy.SecureRoundTrip(req2)
 	}
+	if err != nil {
+		log.Printf("[ServeRoute::ServeHTTP()] Error receiving internal round trip response: %s\n", err)
+		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
+		return
+	}
 
 	// copy headers and status code
 	copyHeader(rw.Header(), resp.Header)
