@@ -10,7 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"math/big"
-	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -158,8 +158,10 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 
 		// get file name and extension
 		name := i.Name()
-		ext := filepath.Ext(name)
-		keyName := name[:len(name)-len(ext)] + ".key"
+		if !strings.HasSuffix(name, ".cert.pem") {
+			continue
+		}
+		keyName := name[:len(name)-len("cert.pem")] + "key.pem"
 
 		// try to read cert file
 		certData, err := fs.ReadFile(c.cDir, name)
