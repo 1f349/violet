@@ -1,8 +1,10 @@
 package target
 
 import (
+	"bytes"
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -76,4 +78,22 @@ func TestRoute_ServeHTTP_Cors(t *testing.T) {
 	assert.Equal(t, "*", res.Header().Get("Access-Control-Allow-Origin"))
 	assert.Equal(t, "true", res.Header().Get("Access-Control-Allow-Credentials"))
 	assert.Equal(t, "Origin", res.Header().Get("Vary"))
+}
+
+func TestRoute_ServeHTTP_Body(t *testing.T) {
+	pt := &proxyTester{}
+	res := httptest.NewRecorder()
+	buf := bytes.NewBuffer([]byte{0x54})
+	req := httptest.NewRequest(http.MethodPost, "https://www.example.com/test", buf)
+	req.Header.Set("Origin", "https://test.example.com")
+	i := &Route{Host: "1.1.1.1", Port: 8080, Path: "/hello", Cors: true, Proxy: pt.makeHybridTransport()}
+	i.ServeHTTP(res, req)
+
+	assert.True(t, pt.got)
+	assert.Equal(t, http.MethodPost, pt.req.Method)
+	assert.Equal(t, "http://1.1.1.1:8080/hello/test", pt.req.URL.String())
+	all, err := io.ReadAll(pt.req.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, bytes.Compare(all, []byte{0x54}))
+	assert.NoError(t, pt.req.Body.Close())
 }
