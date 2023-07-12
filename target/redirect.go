@@ -18,6 +18,11 @@ type Redirect struct {
 	Code  int    `json:"code"`  // status code used to redirect
 }
 
+type RedirectWithActive struct {
+	Redirect
+	Active bool `json:"active"`
+}
+
 func (r Route) HasFlag(flag Flags) bool {
 	return r.Flags&flag != 0
 }

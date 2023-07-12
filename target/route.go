@@ -43,6 +43,11 @@ type Route struct {
 	Proxy   *proxy.HybridTransport `json:"-"`     // reverse proxy handler
 }
 
+type RouteWithActive struct {
+	Route
+	Active bool `json:"active"`
+}
+
 // UpdateHeaders takes an existing set of headers and overwrites them with the
 // extra headers.
 func (r Route) UpdateHeaders(header http.Header) {

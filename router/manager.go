@@ -139,26 +139,23 @@ func (m *Manager) internalCompile(router *Router) error {
 	return rows.Err()
 }
 
-func (m *Manager) GetAllRoutes() ([]target.Route, []bool, error) {
-	rSlice := make([]target.Route, 0)
-	aSlice := make([]bool, 0)
+func (m *Manager) GetAllRoutes() ([]target.RouteWithActive, error) {
+	s := make([]target.RouteWithActive, 0)
 
 	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes`)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	for query.Next() {
-		var a target.Route
-		var active bool
-		if query.Scan(&a.Src, &a.Dst, &a.Flags, &active) != nil {
-			return nil, nil, err
+		var a target.RouteWithActive
+		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Active) != nil {
+			return nil, err
 		}
-		rSlice = append(rSlice, a)
-		aSlice = append(aSlice, active)
+		s = append(s, a)
 	}
 
-	return rSlice, aSlice, nil
+	return s, nil
 }
 
 func (m *Manager) InsertRoute(route target.Route) error {
@@ -171,26 +168,23 @@ func (m *Manager) DeleteRoute(source string) error {
 	return err
 }
 
-func (m *Manager) GetAllRedirects() ([]target.Redirect, []bool, error) {
-	rSlice := make([]target.Redirect, 0)
-	aSlice := make([]bool, 0)
+func (m *Manager) GetAllRedirects() ([]target.RedirectWithActive, error) {
+	s := make([]target.RedirectWithActive, 0)
 
 	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects`)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	for query.Next() {
-		var a target.Redirect
-		var active bool
-		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Code, &active) != nil {
-			return nil, nil, err
+		var a target.RedirectWithActive
+		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Code, &a.Active) != nil {
+			return nil, err
 		}
-		rSlice = append(rSlice, a)
-		aSlice = append(aSlice, active)
+		s = append(s, a)
 	}
 
-	return rSlice, aSlice, nil
+	return s, nil
 }
 
 func (m *Manager) InsertRedirect(redirect target.Redirect) error {
