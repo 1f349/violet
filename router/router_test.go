@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"testing"
 )
 
@@ -29,31 +30,31 @@ var (
 			"/":      "/",
 			"/hello": "",
 		}},
-		{"/", target.Route{Path: "/world"}, mss{
+		{"/", target.Route{Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "",
 		}},
-		{"/", target.Route{Abs: true}, mss{
+		{"/", target.Route{Flags: target.FlagAbs}, mss{
 			"/":      "/",
 			"/hello": "",
 		}},
-		{"/", target.Route{Abs: true, Path: "world"}, mss{
+		{"/", target.Route{Flags: target.FlagAbs, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "",
 		}},
-		{"/", target.Route{Pre: true}, mss{
+		{"/", target.Route{Flags: target.FlagPre}, mss{
 			"/":      "/",
 			"/hello": "/hello",
 		}},
-		{"/", target.Route{Pre: true, Path: "world"}, mss{
+		{"/", target.Route{Flags: target.FlagPre, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "/world/hello",
 		}},
-		{"/", target.Route{Pre: true, Abs: true}, mss{
+		{"/", target.Route{Flags: target.FlagPre | target.FlagAbs}, mss{
 			"/":      "/",
 			"/hello": "/",
 		}},
-		{"/", target.Route{Pre: true, Abs: true, Path: "world"}, mss{
+		{"/", target.Route{Flags: target.FlagPre | target.FlagAbs, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "/world",
 		}},
@@ -62,37 +63,37 @@ var (
 			"/hello":    "/",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Route{Path: "world"}, mss{
+		{"/hello", target.Route{Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Route{Abs: true}, mss{
+		{"/hello", target.Route{Flags: target.FlagAbs}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Route{Abs: true, Path: "world"}, mss{
+		{"/hello", target.Route{Flags: target.FlagAbs, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Route{Pre: true}, mss{
+		{"/hello", target.Route{Flags: target.FlagPre}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "/hi",
 		}},
-		{"/hello", target.Route{Pre: true, Path: "world"}, mss{
+		{"/hello", target.Route{Flags: target.FlagPre, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "/world/hi",
 		}},
-		{"/hello", target.Route{Pre: true, Abs: true}, mss{
+		{"/hello", target.Route{Flags: target.FlagPre | target.FlagAbs}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "/",
 		}},
-		{"/hello", target.Route{Pre: true, Abs: true, Path: "world"}, mss{
+		{"/hello", target.Route{Flags: target.FlagPre | target.FlagAbs, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "/world",
@@ -103,31 +104,31 @@ var (
 			"/":      "/",
 			"/hello": "",
 		}},
-		{"/", target.Redirect{Path: "world"}, mss{
+		{"/", target.Redirect{Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "",
 		}},
-		{"/", target.Redirect{Abs: true}, mss{
+		{"/", target.Redirect{Flags: target.FlagAbs}, mss{
 			"/":      "/",
 			"/hello": "",
 		}},
-		{"/", target.Redirect{Abs: true, Path: "world"}, mss{
+		{"/", target.Redirect{Flags: target.FlagAbs, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "",
 		}},
-		{"/", target.Redirect{Pre: true}, mss{
+		{"/", target.Redirect{Flags: target.FlagPre}, mss{
 			"/":      "/",
 			"/hello": "/hello",
 		}},
-		{"/", target.Redirect{Pre: true, Path: "world"}, mss{
+		{"/", target.Redirect{Flags: target.FlagPre, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "/world/hello",
 		}},
-		{"/", target.Redirect{Pre: true, Abs: true}, mss{
+		{"/", target.Redirect{Flags: target.FlagPre | target.FlagAbs}, mss{
 			"/":      "/",
 			"/hello": "/",
 		}},
-		{"/", target.Redirect{Pre: true, Abs: true, Path: "world"}, mss{
+		{"/", target.Redirect{Flags: target.FlagPre | target.FlagAbs, Dst: "world"}, mss{
 			"/":      "/world",
 			"/hello": "/world",
 		}},
@@ -136,37 +137,37 @@ var (
 			"/hello":    "/",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Redirect{Path: "world"}, mss{
+		{"/hello", target.Redirect{Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Redirect{Abs: true}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagAbs}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Redirect{Abs: true, Path: "world"}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagAbs, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "",
 		}},
-		{"/hello", target.Redirect{Pre: true}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagPre}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "/hi",
 		}},
-		{"/hello", target.Redirect{Pre: true, Path: "world"}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagPre, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "/world/hi",
 		}},
-		{"/hello", target.Redirect{Pre: true, Abs: true}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagPre | target.FlagAbs}, mss{
 			"/":         "",
 			"/hello":    "/",
 			"/hello/hi": "/",
 		}},
-		{"/hello", target.Redirect{Pre: true, Abs: true, Path: "world"}, mss{
+		{"/hello", target.Redirect{Flags: target.FlagPre | target.FlagAbs, Dst: "world"}, mss{
 			"/":         "",
 			"/hello":    "/world",
 			"/hello/hi": "/world",
@@ -181,10 +182,10 @@ func TestRouter_AddRoute(t *testing.T) {
 	for _, i := range routeTests {
 		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
 		dst := i.dst
-		dst.Host = "127.0.0.1"
-		dst.Port = 8080
+		dst.Dst = path.Join("127.0.0.1:8080", dst.Dst)
+		dst.Src = path.Join("example.com", i.path)
 		t.Logf("Running tests for %#v\n", dst)
-		r.AddRoute("example.com", i.path, dst)
+		r.AddRoute(dst)
 		for k, v := range i.tests {
 			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: k}
 			req, _ := http.NewRequest(http.MethodGet, u1.String(), nil)
@@ -217,10 +218,11 @@ func TestRouter_AddRedirect(t *testing.T) {
 	for _, i := range redirectTests {
 		r := New(nil)
 		dst := i.dst
-		dst.Host = "example.com"
+		dst.Dst = path.Join("example.com", dst.Dst)
 		dst.Code = http.StatusFound
+		dst.Src = path.Join("www.example.com", i.path)
 		t.Logf("Running tests for %#v\n", dst)
-		r.AddRedirect("www.example.com", i.path, dst)
+		r.AddRedirect(dst)
 		for k, v := range i.tests {
 			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: v}
 			if v == "" {
@@ -266,10 +268,10 @@ func TestRouter_AddWildcardRoute(t *testing.T) {
 	for _, i := range routeTests {
 		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
 		dst := i.dst
-		dst.Host = "127.0.0.1"
-		dst.Port = 8080
+		dst.Dst = path.Join("127.0.0.1:8080", dst.Dst)
+		dst.Src = path.Join("example.com", i.path)
 		t.Logf("Running tests for %#v\n", dst)
-		r.AddRoute("example.com", i.path, dst)
+		r.AddRoute(dst)
 		for k, v := range i.tests {
 			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: k}
 			req, _ := http.NewRequest(http.MethodGet, u1.String(), nil)

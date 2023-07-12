@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/MrMelon54/violet/favicons"
+	"github.com/MrMelon54/violet/servers/conf"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
@@ -16,7 +17,7 @@ import (
 
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
-func NewHttpsServer(conf *Conf) *http.Server {
+func NewHttpsServer(conf *conf.Conf) *http.Server {
 	return &http.Server{
 		Addr:    conf.HttpsListen,
 		Handler: setupRateLimiter(conf.RateLimit, setupFaviconMiddleware(conf.Favicons, conf.Router)),

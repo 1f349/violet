@@ -5,6 +5,8 @@ import (
 	"github.com/MrMelon54/violet/certs"
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/router"
+	"github.com/MrMelon54/violet/servers/conf"
+	"github.com/MrMelon54/violet/utils/fake"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -26,11 +28,11 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}
-	httpsConf := &Conf{
+	httpsConf := &conf.Conf{
 		RateLimit: 5,
-		Domains:   &fakeDomains{},
+		Domains:   &fake.Domains{},
 		Certs:     certs.New(nil, nil, true),
-		Signer:    snakeOilProv,
+		Signer:    fake.SnakeOilProv,
 		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft)),
 	}
 	srv := NewHttpsServer(httpsConf)

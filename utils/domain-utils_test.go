@@ -60,3 +60,40 @@ func TestGetTopFqdn(t *testing.T) {
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "example.com", domain)
 }
+
+func TestSplitHostPath(t *testing.T) {
+	h, p := SplitHostPath("example.com/hello/world")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/hello/world", p)
+
+	h, p = SplitHostPath("example.com")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/", p)
+}
+
+func TestSplitHostPathQuery(t *testing.T) {
+	h, p, q := SplitHostPathQuery("example.com/hello/world")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/hello/world", p)
+	assert.Equal(t, "", q)
+
+	h, p, q = SplitHostPathQuery("example.com")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/", p)
+	assert.Equal(t, "", q)
+
+	h, p, q = SplitHostPathQuery("example.com/hello/world?a=b")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/hello/world", p)
+	assert.Equal(t, "a=b", q)
+
+	h, p, q = SplitHostPathQuery("example.com?a=b")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/", p)
+	assert.Equal(t, "a=b", q)
+
+	h, p, q = SplitHostPathQuery("example.com/?a=b")
+	assert.Equal(t, "example.com", h)
+	assert.Equal(t, "/", p)
+	assert.Equal(t, "a=b", q)
+}

@@ -46,16 +46,14 @@ func (r *Router) hostRedirect(host string) *trie.Trie[target.Redirect] {
 	return h
 }
 
-func (r *Router) AddService(host string, t target.Route) {
-	r.AddRoute(host, "/", t)
-}
-
-func (r *Router) AddRoute(host string, path string, t target.Route) {
+func (r *Router) AddRoute(t target.Route) {
 	t.Proxy = r.proxy
+	host, path := utils.SplitHostPath(t.Src)
 	r.hostRoute(host).PutString(path, t)
 }
 
-func (r *Router) AddRedirect(host, path string, t target.Redirect) {
+func (r *Router) AddRedirect(t target.Redirect) {
+	host, path := utils.SplitHostPath(t.Src)
 	r.hostRedirect(host).PutString(path, t)
 }
 
@@ -95,7 +93,7 @@ func (r *Router) serveRouteHTTP(rw http.ResponseWriter, req *http.Request, host 
 	if h != nil {
 		pairs := h.GetAllKeyValues([]byte(req.URL.Path))
 		for i := len(pairs) - 1; i >= 0; i-- {
-			if pairs[i].Value.Pre || pairs[i].Key == req.URL.Path {
+			if pairs[i].Value.HasFlag(target.FlagPre) || pairs[i].Key == req.URL.Path {
 				req.URL.Path = strings.TrimPrefix(req.URL.Path, pairs[i].Key)
 				pairs[i].Value.ServeHTTP(rw, req)
 				return true
@@ -110,7 +108,7 @@ func (r *Router) serveRedirectHTTP(rw http.ResponseWriter, req *http.Request, ho
 	if h != nil {
 		pairs := h.GetAllKeyValues([]byte(req.URL.Path))
 		for i := len(pairs) - 1; i >= 0; i-- {
-			if pairs[i].Value.Pre || pairs[i].Key == req.URL.Path {
+			if pairs[i].Value.Flags.HasFlag(target.FlagPre) || pairs[i].Key == req.URL.Path {
 				req.URL.Path = strings.TrimPrefix(req.URL.Path, pairs[i].Key)
 				pairs[i].Value.ServeHTTP(rw, req)
 				return true

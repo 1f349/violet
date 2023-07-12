@@ -25,9 +25,9 @@ func (p *proxyTester) RoundTrip(req *http.Request) (*http.Response, error) {
 	return &http.Response{StatusCode: http.StatusOK}, nil
 }
 
-func TestRoute_FullHost(t *testing.T) {
-	assert.Equal(t, "localhost", Route{Host: "localhost"}.FullHost())
-	assert.Equal(t, "localhost:22", Route{Host: "localhost", Port: 22}.FullHost())
+func TestRoute_HasFlag(t *testing.T) {
+	assert.True(t, Route{Flags: FlagPre | FlagAbs}.HasFlag(FlagPre))
+	assert.False(t, Route{Flags: FlagPre | FlagAbs}.HasFlag(FlagCors))
 }
 
 func TestRoute_ServeHTTP(t *testing.T) {
@@ -35,12 +35,12 @@ func TestRoute_ServeHTTP(t *testing.T) {
 		Route
 		target string
 	}{
-		{Route{Host: "localhost", Port: 1234, Path: "/bye", Abs: true}, "http://localhost:1234/bye"},
-		{Route{Host: "1.2.3.4", Path: "/bye"}, "http://1.2.3.4:80/bye/hello/world"},
-		{Route{Host: "2.2.2.2", Path: "/world", Abs: true, SecureMode: true}, "https://2.2.2.2:443/world"},
-		{Route{Host: "api.example.com", Path: "/world", Abs: true, SecureMode: true, ForwardHost: true}, "https://api.example.com:443/world"},
-		{Route{Host: "api.example.org", Path: "/world", Abs: true, SecureMode: true, ForwardAddr: true}, "https://api.example.org:443/world"},
-		{Route{Host: "3.3.3.3", Path: "/headers", Abs: true, Headers: http.Header{"X-Other": []string{"test value"}}}, "http://3.3.3.3:80/headers"},
+		{Route{Dst: "localhost:1234/bye", Flags: FlagAbs}, "http://localhost:1234/bye"},
+		{Route{Dst: "1.2.3.4/bye"}, "http://1.2.3.4/bye/hello/world"},
+		{Route{Dst: "2.2.2.2/world", Flags: FlagAbs | FlagSecureMode}, "https://2.2.2.2/world"},
+		{Route{Dst: "api.example.com/world", Flags: FlagAbs | FlagSecureMode | FlagForwardHost}, "https://api.example.com/world"},
+		{Route{Dst: "api.example.org/world", Flags: FlagAbs | FlagSecureMode | FlagForwardAddr}, "https://api.example.org/world"},
+		{Route{Dst: "3.3.3.3/headers", Flags: FlagAbs, Headers: http.Header{"X-Other": []string{"test value"}}}, "http://3.3.3.3/headers"},
 	}
 	for _, i := range a {
 		pt := &proxyTester{}
@@ -51,10 +51,10 @@ func TestRoute_ServeHTTP(t *testing.T) {
 
 		assert.True(t, pt.got)
 		assert.Equal(t, i.target, pt.req.URL.String())
-		if i.ForwardAddr {
+		if i.HasFlag(FlagForwardAddr) {
 			assert.Equal(t, req.RemoteAddr, pt.req.Header.Get("X-Forwarded-For"))
 		}
-		if i.ForwardHost {
+		if i.HasFlag(FlagForwardHost) {
 			assert.Equal(t, req.Host, pt.req.Host)
 		}
 		if i.Headers != nil {
@@ -68,7 +68,7 @@ func TestRoute_ServeHTTP_Cors(t *testing.T) {
 	res := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodOptions, "https://www.example.com/test", nil)
 	req.Header.Set("Origin", "https://test.example.com")
-	i := &Route{Host: "1.1.1.1", Port: 8080, Path: "/hello", Cors: true, Proxy: pt.makeHybridTransport()}
+	i := &Route{Dst: "1.1.1.1:8080/hello", Flags: FlagCors, Proxy: pt.makeHybridTransport()}
 	i.ServeHTTP(res, req)
 
 	assert.True(t, pt.got)
@@ -86,7 +86,7 @@ func TestRoute_ServeHTTP_Body(t *testing.T) {
 	buf := bytes.NewBuffer([]byte{0x54})
 	req := httptest.NewRequest(http.MethodPost, "https://www.example.com/test", buf)
 	req.Header.Set("Origin", "https://test.example.com")
-	i := &Route{Host: "1.1.1.1", Port: 8080, Path: "/hello", Cors: true, Proxy: pt.makeHybridTransport()}
+	i := &Route{Dst: "1.1.1.1:8080/hello", Flags: FlagCors, Proxy: pt.makeHybridTransport()}
 	i.ServeHTTP(res, req)
 
 	assert.True(t, pt.got)

@@ -14,6 +14,8 @@ import (
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/router"
 	"github.com/MrMelon54/violet/servers"
+	"github.com/MrMelon54/violet/servers/api"
+	"github.com/MrMelon54/violet/servers/conf"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/google/subcommands"
 	"io/fs"
@@ -70,9 +72,9 @@ func (s *serveCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{
 	return subcommands.ExitSuccess
 }
 
-func normalLoad(conf startUpConfig, wd string) {
+func normalLoad(startUp startUpConfig, wd string) {
 	// the cert and key paths are useless in self-signed mode
-	if !conf.SelfSigned {
+	if !startUp.SelfSigned {
 		// create path to cert dir
 		err := os.MkdirAll(filepath.Join(wd, "certs"), os.ModePerm)
 		if err != nil {
@@ -87,11 +89,11 @@ func normalLoad(conf startUpConfig, wd string) {
 
 	// errorPageDir stores an FS interface for accessing the error page directory
 	var errorPageDir fs.FS
-	if conf.ErrorPagePath != "" {
-		errorPageDir = os.DirFS(conf.ErrorPagePath)
-		err := os.MkdirAll(conf.ErrorPagePath, os.ModePerm)
+	if startUp.ErrorPagePath != "" {
+		errorPageDir = os.DirFS(startUp.ErrorPagePath)
+		err := os.MkdirAll(startUp.ErrorPagePath, os.ModePerm)
 		if err != nil {
-			log.Fatalf("[Violet] Failed to create error page path '%s'", conf.ErrorPagePath)
+			log.Fatalf("[Violet] Failed to create error page path '%s'", startUp.ErrorPagePath)
 		}
 	}
 
@@ -110,20 +112,20 @@ func normalLoad(conf startUpConfig, wd string) {
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
 	keyDir := os.DirFS(filepath.Join(wd, "keys"))
 
-	allowedDomains := domains.New(db)                           // load allowed domains
-	acmeChallenges := utils.NewAcmeChallenge()                  // load acme challenge store
-	allowedCerts := certs.New(certDir, keyDir, conf.SelfSigned) // load certificate manager
-	hybridTransport := proxy.NewHybridTransport()               // load reverse proxy
-	dynamicFavicons := favicons.New(db, conf.InkscapeCmd)       // load dynamic favicon provider
-	dynamicErrorPages := errorPages.New(errorPageDir)           // load dynamic error page provider
-	dynamicRouter := router.NewManager(db, hybridTransport)     // load dynamic router manager
+	allowedDomains := domains.New(db)                              // load allowed domains
+	acmeChallenges := utils.NewAcmeChallenge()                     // load acme challenge store
+	allowedCerts := certs.New(certDir, keyDir, startUp.SelfSigned) // load certificate manager
+	hybridTransport := proxy.NewHybridTransport()                  // load reverse proxy
+	dynamicFavicons := favicons.New(db, startUp.InkscapeCmd)       // load dynamic favicon provider
+	dynamicErrorPages := errorPages.New(errorPageDir)              // load dynamic error page provider
+	dynamicRouter := router.NewManager(db, hybridTransport)        // load dynamic router manager
 
 	// struct containing config for the http servers
-	srvConf := &servers.Conf{
-		ApiListen:   conf.Listen.Api,
-		HttpListen:  conf.Listen.Http,
-		HttpsListen: conf.Listen.Https,
-		RateLimit:   conf.RateLimit,
+	srvConf := &conf.Conf{
+		ApiListen:   startUp.Listen.Api,
+		HttpListen:  startUp.Listen.Http,
+		HttpsListen: startUp.Listen.Https,
+		RateLimit:   startUp.RateLimit,
 		DB:          db,
 		Domains:     allowedDomains,
 		Acme:        acmeChallenges,
@@ -140,7 +142,7 @@ func normalLoad(conf startUpConfig, wd string) {
 
 	var srvApi, srvHttp, srvHttps *http.Server
 	if srvConf.ApiListen != "" {
-		srvApi = servers.NewApiServer(srvConf, allCompilables)
+		srvApi = api.NewApiServer(srvConf, allCompilables)
 		log.Printf("[API] Starting API server on: '%s'\n", srvApi.Addr)
 		go utils.RunBackgroundHttp("API", srvApi)
 	}

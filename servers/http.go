@@ -2,6 +2,7 @@ package servers
 
 import (
 	"fmt"
+	"github.com/MrMelon54/violet/servers/conf"
 	"github.com/MrMelon54/violet/utils"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
 // acme challenges, this is used for Let's Encrypt HTTP verification.
-func NewHttpServer(conf *Conf) *http.Server {
+func NewHttpServer(conf *conf.Conf) *http.Server {
 	r := httprouter.New()
 	var secureExtend string
 	_, httpsPort, ok := utils.SplitDomainPort(conf.HttpsListen, 443)

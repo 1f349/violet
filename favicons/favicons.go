@@ -2,6 +2,7 @@ package favicons
 
 import (
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 	"github.com/MrMelon54/rescheduler"
@@ -11,6 +12,9 @@ import (
 )
 
 var ErrFaviconNotFound = errors.New("favicon not found")
+
+//go:embed create-table-favicons.sql
+var createTableFavicons string
 
 // Favicons is a dynamic favicon generator which supports overwriting favicons
 type Favicons struct {
@@ -32,7 +36,7 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 	f.r = rescheduler.NewRescheduler(f.threadCompile)
 
 	// init favicons table
-	_, err := f.db.Exec(`create table if not exists favicons (id integer primary key autoincrement, host varchar, svg varchar, png varchar, ico varchar)`)
+	_, err := f.db.Exec(createTableFavicons)
 	if err != nil {
 		log.Printf("[WARN] Failed to generate 'favicons' table\n")
 		return nil

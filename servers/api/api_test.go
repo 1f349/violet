@@ -1,59 +1,22 @@
-package servers
+package api
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"github.com/MrMelon54/mjwt"
-	"github.com/MrMelon54/mjwt/auth"
-	"github.com/MrMelon54/mjwt/claims"
+	"github.com/MrMelon54/violet/servers/conf"
 	"github.com/MrMelon54/violet/utils"
+	"github.com/MrMelon54/violet/utils/fake"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 )
 
-var snakeOilProv = genSnakeOilProv()
-
-type fakeDomains struct{}
-
-func (f *fakeDomains) IsValid(host string) bool { return host == "example.com" }
-func (f *fakeDomains) Put(string, bool)         {}
-func (f *fakeDomains) Delete(string)            {}
-func (f *fakeDomains) Compile()                 {}
-
-func genSnakeOilProv() mjwt.Signer {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
-	if err != nil {
-		panic(err)
-	}
-	return mjwt.NewMJwtSigner("violet.test", key)
-}
-
-func genSnakeOilKey(perm string) string {
-	p := claims.NewPermStorage()
-	p.Set(perm)
-	val, err := snakeOilProv.GenerateJwt("abc", "abc", nil, 5*time.Minute, auth.AccessTokenClaims{Perms: p})
-	if err != nil {
-		panic(err)
-	}
-	return val
-}
-
-type fakeCompilable struct{ done bool }
-
-func (f *fakeCompilable) Compile() { f.done = true }
-
-var _ utils.Compilable = &fakeCompilable{}
-
 func TestNewApiServer_Compile(t *testing.T) {
-	apiConf := &Conf{
-		Domains: &fakeDomains{},
+	apiConf := &conf.Conf{
+		Domains: &fake.Domains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Signer:  snakeOilProv,
+		Signer:  fake.SnakeOilProv,
 	}
-	f := &fakeCompilable{}
+	f := &fake.Compilable{}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{f})
 
 	req, err := http.NewRequest(http.MethodPost, "https://example.com/compile", nil)
@@ -63,25 +26,25 @@ func TestNewApiServer_Compile(t *testing.T) {
 	srv.Handler.ServeHTTP(rec, req)
 	res := rec.Result()
 	assert.Equal(t, http.StatusForbidden, res.StatusCode)
-	assert.False(t, f.done)
+	assert.False(t, f.Done)
 
-	req.Header.Set("Authorization", "Bearer "+genSnakeOilKey("violet:compile"))
+	req.Header.Set("Authorization", "Bearer "+fake.GenSnakeOilKey("violet:compile"))
 
 	rec = httptest.NewRecorder()
 	srv.Handler.ServeHTTP(rec, req)
 	res = rec.Result()
 	assert.Equal(t, http.StatusAccepted, res.StatusCode)
-	assert.True(t, f.done)
+	assert.True(t, f.Done)
 }
 
 func TestNewApiServer_AcmeChallenge_Put(t *testing.T) {
-	apiConf := &Conf{
-		Domains: &fakeDomains{},
+	apiConf := &conf.Conf{
+		Domains: &fake.Domains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Signer:  snakeOilProv,
+		Signer:  fake.SnakeOilProv,
 	}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{})
-	acmeKey := genSnakeOilKey("violet:acme-challenge")
+	acmeKey := fake.GenSnakeOilKey("violet:acme-challenge")
 
 	// Valid domain
 	req, err := http.NewRequest(http.MethodPut, "https://example.com/acme-challenge/example.com/123/123abc", nil)
@@ -119,13 +82,13 @@ func TestNewApiServer_AcmeChallenge_Put(t *testing.T) {
 }
 
 func TestNewApiServer_AcmeChallenge_Delete(t *testing.T) {
-	apiConf := &Conf{
-		Domains: &fakeDomains{},
+	apiConf := &conf.Conf{
+		Domains: &fake.Domains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Signer:  snakeOilProv,
+		Signer:  fake.SnakeOilProv,
 	}
 	srv := NewApiServer(apiConf, utils.MultiCompilable{})
-	acmeKey := genSnakeOilKey("violet:acme-challenge")
+	acmeKey := fake.GenSnakeOilKey("violet:acme-challenge")
 
 	// Valid domain
 	req, err := http.NewRequest(http.MethodDelete, "https://example.com/acme-challenge/example.com/123", nil)

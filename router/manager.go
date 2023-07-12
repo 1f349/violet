@@ -3,15 +3,11 @@ package router
 import (
 	"database/sql"
 	_ "embed"
-	"fmt"
 	"github.com/MrMelon54/rescheduler"
 	"github.com/MrMelon54/violet/proxy"
 	"github.com/MrMelon54/violet/target"
-	"github.com/MrMelon54/violet/utils"
 	"log"
 	"net/http"
-	"path"
-	"strings"
 	"sync"
 )
 
@@ -26,14 +22,8 @@ type Manager struct {
 }
 
 var (
-	//go:embed create-table-routes.sql
-	createTableRoutes string
-	//go:embed create-table-redirects.sql
-	createTableRedirects string
-	//go:embed query-table-routes.sql
-	queryTableRoutes string
-	//go:embed query-table-redirects.sql
-	queryTableRedirects string
+	//go:embed create-tables.sql
+	createTables string
 )
 
 // NewManager create a new manager, initialises the routes and redirects tables
@@ -48,16 +38,9 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 	m.z = rescheduler.NewRescheduler(m.threadCompile)
 
 	// init routes table
-	_, err := m.db.Exec(createTableRoutes)
+	_, err := m.db.Exec(createTables)
 	if err != nil {
-		log.Printf("[WARN] Failed to generate 'routes' table\n")
-		return nil
-	}
-
-	// init redirects table
-	_, err = m.db.Exec(createTableRedirects)
-	if err != nil {
-		log.Printf("[WARN] Failed to generate 'redirects' table\n")
+		log.Printf("[WARN] Failed to generate tables\n")
 		return nil
 	}
 	return m
@@ -96,7 +79,7 @@ func (m *Manager) internalCompile(router *Router) error {
 	log.Println("[Manager] Updating routes from database")
 
 	// sql or something?
-	rows, err := m.db.Query(queryTableRoutes)
+	rows, err := m.db.Query(`SELECT source, destination, flags FROM routes WHERE active = 1`)
 	if err != nil {
 		return err
 	}
@@ -105,26 +88,19 @@ func (m *Manager) internalCompile(router *Router) error {
 	// loop through rows and scan the options
 	for rows.Next() {
 		var (
-			pre, abs, cors, secure_mode, forward_host, forward_addr, ignore_cert bool
-			src, dst                                                             string
+			src, dst string
+			flags    target.Flags
 		)
-		err := rows.Scan(&src, &pre, &dst, &abs, &cors, &secure_mode, &forward_host, &forward_addr, &ignore_cert)
+		err := rows.Scan(&src, &dst, &flags)
 		if err != nil {
 			return err
 		}
 
-		err = addRoute(router, src, dst, target.Route{
-			Pre:         pre,
-			Abs:         abs,
-			Cors:        cors,
-			SecureMode:  secure_mode,
-			ForwardHost: forward_host,
-			ForwardAddr: forward_addr,
-			IgnoreCert:  ignore_cert,
+		router.AddRoute(target.Route{
+			Src:   src,
+			Dst:   dst,
+			Flags: flags.NormaliseRouteFlags(),
 		})
-		if err != nil {
-			return err
-		}
 	}
 
 	// check for errors
@@ -133,7 +109,7 @@ func (m *Manager) internalCompile(router *Router) error {
 	}
 
 	// sql or something?
-	rows, err = m.db.Query(queryTableRedirects)
+	rows, err = m.db.Query(`SELECT source,destination,flags,code FROM redirects WHERE active = 1`)
 	if err != nil {
 		return err
 	}
@@ -142,99 +118,51 @@ func (m *Manager) internalCompile(router *Router) error {
 	// loop through rows and scan the options
 	for rows.Next() {
 		var (
-			pre, abs bool
-			code     int
 			src, dst string
+			flags    target.Flags
+			code     int
 		)
-		err := rows.Scan(&src, &pre, &dst, &abs, &code)
+		err := rows.Scan(&src, &dst, &flags, &code)
 		if err != nil {
 			return err
 		}
 
-		err = addRedirect(router, src, dst, target.Redirect{
-			Pre:  pre,
-			Abs:  abs,
-			Code: code,
+		router.AddRedirect(target.Redirect{
+			Src:   src,
+			Dst:   dst,
+			Flags: flags.NormaliseRedirectFlags(),
+			Code:  code,
 		})
-		if err != nil {
-			return err
-		}
 	}
 
 	// check for errors
 	return rows.Err()
 }
 
-func (m *Manager) Add(source string, route target.Route, active bool) {
+func (m *Manager) InsertRoute(route target.Route) error {
 	m.s.Lock()
 	defer m.s.Unlock()
-	_, err := m.db.Exec(`INSERT INTO routes (source, pre, destination, abs, cors, secure_mode, forward_host, forward_addr, ignore_cert, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, source, route.Pre, path.Join(route.Host, route.Path), route.Abs, route.Cors, route.SecureMode, route.ForwardHost, route.ForwardAddr, route.IgnoreCert, active)
-	if err != nil {
-		log.Printf("[Violet] Database error: %s\n", err)
-	}
+	_, err := m.db.Exec(`INSERT INTO routes (source, destination, flags) VALUES (?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, active = 1`, route.Src, route.Dst, route.Flags)
+	return err
 }
 
-// addRoute is an alias to parse the src and dst then add the route
-func addRoute(router *Router, src string, dst string, t target.Route) error {
-	srcHost, srcPath, dstHost, dstPort, dstPath, err := parseSrcDstHost(src, dst)
-	if err != nil {
-		return err
-	}
-
-	// update target route values and add route
-	t.Host = dstHost
-	t.Port = dstPort
-	t.Path = dstPath
-	router.AddRoute(srcHost, srcPath, t)
-	return nil
+func (m *Manager) DeleteRoute(source string) error {
+	m.s.Lock()
+	defer m.s.Unlock()
+	_, err := m.db.Exec(`UPDATE routes SET active = 0 WHERE source = ?`, source)
+	return err
 }
 
-// addRedirect is an alias to parse the src and dst then add the redirect
-func addRedirect(router *Router, src string, dst string, t target.Redirect) error {
-	srcHost, srcPath, dstHost, dstPort, dstPath, err := parseSrcDstHost(src, dst)
-	if err != nil {
-		return err
-	}
-
-	t.Host = dstHost
-	t.Port = dstPort
-	t.Path = dstPath
-	router.AddRedirect(srcHost, srcPath, t)
-	return nil
+func (m *Manager) InsertRedirect(redirect target.Redirect) error {
+	m.s.Lock()
+	defer m.s.Unlock()
+	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, flags, code) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, code = excluded.code, active = 1`, redirect.Src, redirect.Dst, redirect.Flags, redirect.Code)
+	return err
 }
 
-// parseSrcDstHost extracts the host/path and host:port/path from the src and dst values
-func parseSrcDstHost(src string, dst string) (string, string, string, int, string, error) {
-	// check if source has path
-	var srcHost, srcPath string
-	nSrc := strings.IndexByte(src, '/')
-	if nSrc == -1 {
-		// set host then path to /
-		srcHost = src
-		srcPath = "/"
-	} else {
-		// set host then custom path
-		srcHost = src[:nSrc]
-		srcPath = src[nSrc:]
-	}
-
-	// check if destination has path
-	var dstPath string
-	nDst := strings.IndexByte(dst, '/')
-	if nDst == -1 {
-		// set path to /
-		dstPath = "/"
-	} else {
-		// set custom path then trim dst string to the host
-		dstPath = dst[nDst:]
-		dst = dst[:nDst]
-	}
-
-	// try to split the destination host into domain + port
-	dstHost, dstPort, ok := utils.SplitDomainPort(dst, 0)
-	if !ok {
-		return "", "", "", 0, "", fmt.Errorf("failed to split destination '%s' into host + port", dst)
-	}
-
-	return srcHost, srcPath, dstHost, dstPort, dstPath, nil
+func (m *Manager) DeleteRedirect(source string) error {
+	m.s.Lock()
+	defer m.s.Unlock()
+	_, err := m.db.Exec(`UPDATE redirects SET active = 0 WHERE source = ?`, source)
+	return err
 }

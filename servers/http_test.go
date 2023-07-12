@@ -2,7 +2,9 @@ package servers
 
 import (
 	"bytes"
+	"github.com/MrMelon54/violet/servers/conf"
 	"github.com/MrMelon54/violet/utils"
+	"github.com/MrMelon54/violet/utils/fake"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -11,10 +13,10 @@ import (
 )
 
 func TestNewHttpServer_AcmeChallenge(t *testing.T) {
-	httpConf := &Conf{
-		Domains: &fakeDomains{},
+	httpConf := &conf.Conf{
+		Domains: &fake.Domains{},
 		Acme:    utils.NewAcmeChallenge(),
-		Signer:  snakeOilProv,
+		Signer:  fake.SnakeOilProv,
 	}
 	srv := NewHttpServer(httpConf)
 	httpConf.Acme.Put("example.com", "456", "456def")

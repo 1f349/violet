@@ -3,6 +3,7 @@ package router
 import (
 	"database/sql"
 	"github.com/MrMelon54/violet/proxy"
+	"github.com/MrMelon54/violet/target"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -37,7 +38,7 @@ func TestNewManager(t *testing.T) {
 	assert.Equal(t, http.StatusTeapot, res.StatusCode)
 	assert.Nil(t, ft.req)
 
-	_, err = db.Exec(`INSERT INTO routes (source, pre, destination, abs, cors, secure_mode, forward_host, forward_addr, ignore_cert, active) VALUES (?,?,?,?,?,?,?,?,?,?)`, "*.example.com", 0, "127.0.0.1:8080", 1, 0, 0, 1, 1, 0, 1)
+	_, err = db.Exec(`INSERT INTO routes (source, destination, flags, active) VALUES (?,?,?,1)`, "*.example.com", "127.0.0.1:8080", target.FlagAbs|target.FlagForwardHost|target.FlagForwardAddr)
 	assert.NoError(t, err)
 
 	assert.NoError(t, m.internalCompile(m.r))

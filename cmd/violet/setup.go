@@ -181,13 +181,15 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		// add with the route manager, no need to compile as this will run when opened
 		// with the serve subcommand
 		routeManager := router.NewManager(db, proxy.NewHybridTransportWithCalls(&nilTransport{}, &nilTransport{}))
-		routeManager.Add(path.Join(apiUrl.Host, apiUrl.Path), target.Route{
-			Pre:         true,
-			Host:        answers.ApiListen,
-			Cors:        true,
-			ForwardHost: true,
-			ForwardAddr: true,
-		}, true)
+		err = routeManager.InsertRoute(target.Route{
+			Src:   path.Join(apiUrl.Host, apiUrl.Path),
+			Dst:   answers.ApiListen,
+			Flags: target.FlagPre | target.FlagCors | target.FlagForwardHost | target.FlagForwardAddr,
+		})
+		if err != nil {
+			fmt.Println("[Violet] Failed to insert api route into database: ", err)
+			return subcommands.ExitFailure
+		}
 	}
 
 	fmt.Println("[Violet] Setup complete")

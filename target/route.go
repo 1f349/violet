@@ -36,18 +36,11 @@ var serveApiCors = cors.New(cors.Options{
 // Route is a target used by the router to manage forwarding traffic to an
 // internal server using the specified configuration.
 type Route struct {
-	Pre         bool                   // if the path has had a prefix removed
-	Host        string                 // target host
-	Port        int                    // target port
-	Path        string                 // target path (possibly a prefix or absolute)
-	Abs         bool                   // if the path is a prefix or absolute
-	Cors        bool                   // add CORS headers
-	SecureMode  bool                   // use HTTPS internally
-	ForwardHost bool                   // forward host header internally
-	ForwardAddr bool                   // forward remote address
-	IgnoreCert  bool                   // ignore self-cert
-	Headers     http.Header            // extra headers
-	Proxy       *proxy.HybridTransport // reverse proxy handler
+	Src     string                 `json:"src"`   // request source
+	Dst     string                 `json:"dst"`   // proxy destination
+	Flags   Flags                  `json:"flags"` // extra flags
+	Headers http.Header            `json:"-"`     // extra headers
+	Proxy   *proxy.HybridTransport `json:"-"`     // reverse proxy handler
 }
 
 // UpdateHeaders takes an existing set of headers and overwrites them with the
@@ -58,18 +51,10 @@ func (r Route) UpdateHeaders(header http.Header) {
 	}
 }
 
-// FullHost outputs a host:port combo or just the host if the port is 0.
-func (r Route) FullHost() string {
-	if r.Port == 0 {
-		return r.Host
-	}
-	return fmt.Sprintf("%s:%d", r.Host, r.Port)
-}
-
 // ServeHTTP responds with the data proxied from the internal server to the
 // response writer provided.
 func (r Route) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if r.Cors {
+	if r.HasFlag(FlagCors) {
 		// wraps with CORS handler
 		serveApiCors.Handler(http.HandlerFunc(r.internalServeHTTP)).ServeHTTP(rw, req)
 	} else {
@@ -82,21 +67,16 @@ func (r Route) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// set the scheme and port using defaults if the port is 0
 	scheme := "http"
-	if r.SecureMode {
+	if r.HasFlag(FlagSecureMode) {
 		scheme = "https"
-		if r.Port == 0 {
-			r.Port = 443
-		}
-	} else {
-		if r.Port == 0 {
-			r.Port = 80
-		}
 	}
 
+	// split the host and path
+	host, p := utils.SplitHostPath(r.Dst)
+
 	// if not Abs then join with the ending of the current path
-	p := r.Path
-	if !r.Abs {
-		p = path.Join(r.Path, req.URL.Path)
+	if !r.HasFlag(FlagAbs) {
+		p = path.Join(p, req.URL.Path)
 
 		// replace the trailing slash that path.Join() strips off
 		if strings.HasSuffix(req.URL.Path, "/") {
@@ -112,7 +92,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// create a new URL
 	u := &url.URL{
 		Scheme:   scheme,
-		Host:     r.FullHost(),
+		Host:     host,
 		Path:     p,
 		RawQuery: req.URL.RawQuery,
 	}
@@ -150,10 +130,10 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// if forward host is enabled then send the host
-	if r.ForwardHost {
+	if r.HasFlag(FlagForwardHost) {
 		req2.Host = req.Host
 	}
-	if r.ForwardAddr {
+	if r.HasFlag(FlagForwardAddr) {
 		req2.Header.Add("X-Forwarded-For", req.RemoteAddr)
 	}
 
@@ -162,7 +142,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// serve request with reverse proxy
 	var resp *http.Response
-	if r.IgnoreCert {
+	if r.HasFlag(FlagIgnoreCert) {
 		resp, err = r.Proxy.InsecureRoundTrip(req2)
 	} else {
 		resp, err = r.Proxy.SecureRoundTrip(req2)

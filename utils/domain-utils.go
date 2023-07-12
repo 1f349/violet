@@ -83,3 +83,38 @@ func GetTopFqdn(domain string) (string, bool) {
 	}
 	return domain[n+1:], true
 }
+
+// SplitHostPath extracts the host/path from the input
+func SplitHostPath(a string) (host, path string) {
+	// check if source has path
+	n := strings.IndexByte(a, '/')
+	if n == -1 {
+		// set host then path to /
+		host = a
+		path = "/"
+	} else {
+		// set host then custom path
+		host = a[:n]
+		path = a[n:] // this required to keep / at the start of the path
+	}
+	return
+}
+
+// SplitHostPathQuery extracts the host/path?query from the input
+func SplitHostPathQuery(a string) (host, path, query string) {
+	host, path = SplitHostPath(a)
+	if path == "/" {
+		n := strings.IndexByte(host, '?')
+		if n != -1 {
+			query = host[n+1:]
+			host = host[:n]
+		}
+		return
+	}
+	n := strings.IndexByte(path, '?')
+	if n != -1 {
+		query = path[n+1:]
+		path = path[:n] // reassign happens after
+	}
+	return
+}
