@@ -139,30 +139,66 @@ func (m *Manager) internalCompile(router *Router) error {
 	return rows.Err()
 }
 
+func (m *Manager) GetAllRoutes() ([]target.Route, []bool, error) {
+	rSlice := make([]target.Route, 0)
+	aSlice := make([]bool, 0)
+
+	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes`)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for query.Next() {
+		var a target.Route
+		var active bool
+		if query.Scan(&a.Src, &a.Dst, &a.Flags, &active) != nil {
+			return nil, nil, err
+		}
+		rSlice = append(rSlice, a)
+		aSlice = append(aSlice, active)
+	}
+
+	return rSlice, aSlice, nil
+}
+
 func (m *Manager) InsertRoute(route target.Route) error {
-	m.s.Lock()
-	defer m.s.Unlock()
 	_, err := m.db.Exec(`INSERT INTO routes (source, destination, flags) VALUES (?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, active = 1`, route.Src, route.Dst, route.Flags)
 	return err
 }
 
 func (m *Manager) DeleteRoute(source string) error {
-	m.s.Lock()
-	defer m.s.Unlock()
 	_, err := m.db.Exec(`UPDATE routes SET active = 0 WHERE source = ?`, source)
 	return err
 }
 
+func (m *Manager) GetAllRedirects() ([]target.Redirect, []bool, error) {
+	rSlice := make([]target.Redirect, 0)
+	aSlice := make([]bool, 0)
+
+	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects`)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for query.Next() {
+		var a target.Redirect
+		var active bool
+		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Code, &active) != nil {
+			return nil, nil, err
+		}
+		rSlice = append(rSlice, a)
+		aSlice = append(aSlice, active)
+	}
+
+	return rSlice, aSlice, nil
+}
+
 func (m *Manager) InsertRedirect(redirect target.Redirect) error {
-	m.s.Lock()
-	defer m.s.Unlock()
 	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, flags, code) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, code = excluded.code, active = 1`, redirect.Src, redirect.Dst, redirect.Flags, redirect.Code)
 	return err
 }
 
 func (m *Manager) DeleteRedirect(source string) error {
-	m.s.Lock()
-	defer m.s.Unlock()
 	_, err := m.db.Exec(`UPDATE redirects SET active = 0 WHERE source = ?`, source)
 	return err
 }

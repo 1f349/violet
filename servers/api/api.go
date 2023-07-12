@@ -34,10 +34,34 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable) *http.Se
 	targetApis := SetupTargetApis(conf.Signer, conf.Router)
 
 	// Endpoint for routes
+	r.GET("/route", checkAuthWithPerm(conf.Signer, "violet:route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+		routes, active, err := conf.Router.GetAllRoutes()
+		if err != nil {
+			apiError(rw, http.StatusInternalServerError, "Failed to get routes from database")
+			return
+		}
+		rw.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(rw).Encode(map[string]any{
+			"routes": routes,
+			"active": active,
+		})
+	}))
 	r.POST("/route", targetApis.CreateRoute)
 	r.DELETE("/route", targetApis.DeleteRoute)
 
 	// Endpoint for redirects
+	r.GET("/redirect", checkAuthWithPerm(conf.Signer, "violet:redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+		redirects, active, err := conf.Router.GetAllRedirects()
+		if err != nil {
+			apiError(rw, http.StatusInternalServerError, "Failed to get redirects from database")
+			return
+		}
+		rw.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(rw).Encode(map[string]any{
+			"redirects": redirects,
+			"active":    active,
+		})
+	}))
 	r.POST("/redirect", targetApis.CreateRedirect)
 	r.DELETE("/redirect", targetApis.DeleteRedirect)
 
