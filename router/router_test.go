@@ -194,7 +194,7 @@ func TestRouter_AddRoute(t *testing.T) {
 			if v == "" {
 				if transSecure.req != nil {
 					t.Logf("Test URL: %#v\n", req.URL)
-					t.Log(r.redirect["example.com"].String())
+					t.Log(r.route["example.com"].String())
 					t.Fatalf("%s => %s\n", k, v)
 				}
 			} else {
@@ -269,29 +269,29 @@ func TestRouter_AddWildcardRoute(t *testing.T) {
 		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
 		dst := i.dst
 		dst.Dst = path.Join("127.0.0.1:8080", dst.Dst)
-		dst.Src = path.Join("example.com", i.path)
+		dst.Src = path.Join("*.example.com", i.path)
 		t.Logf("Running tests for %#v\n", dst)
 		r.AddRoute(dst)
 		for k, v := range i.tests {
-			u1 := &url.URL{Scheme: "https", Host: "example.com", Path: k}
+			u1 := &url.URL{Scheme: "https", Host: "test.example.com", Path: k}
 			req, _ := http.NewRequest(http.MethodGet, u1.String(), nil)
 			rec := httptest.NewRecorder()
 			r.ServeHTTP(rec, req)
 			if v == "" {
 				if transSecure.req != nil {
 					t.Logf("Test URL: %#v\n", req.URL)
-					t.Log(r.redirect["example.com"].String())
+					t.Log(r.route["*.example.com"].String())
 					t.Fatalf("%s => %s\n", k, v)
 				}
 			} else {
 				if transSecure.req == nil {
 					t.Logf("Test URL: %#v\n", req.URL)
-					t.Log(r.route["example.com"].String())
+					t.Log(r.route["*.example.com"].String())
 					t.Fatalf("\nexpected %s => %s\n     got %s => %s\n", k, v, k, "")
 				}
 				if v != transSecure.req.URL.Path {
 					t.Logf("Test URL: %#v\n", req.URL)
-					t.Log(r.route["example.com"].String())
+					t.Log(r.route["*.example.com"].String())
 					t.Fatalf("\nexpected %s => %s\n     got %s => %s\n", k, v, k, transSecure.req.URL.Path)
 				}
 				transSecure.req = nil
