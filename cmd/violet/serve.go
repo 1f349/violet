@@ -59,8 +59,8 @@ func (s *serveCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{
 		return subcommands.ExitFailure
 	}
 
-	var conf startUpConfig
-	err = json.NewDecoder(openConf).Decode(&conf)
+	var config startUpConfig
+	err = json.NewDecoder(openConf).Decode(&config)
 	if err != nil {
 		log.Println("[Violet] Error: invalid config file: ", err)
 		return subcommands.ExitFailure
@@ -68,7 +68,7 @@ func (s *serveCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{
 
 	// working directory is the parent of the config file
 	wd := filepath.Dir(s.configPath)
-	normalLoad(conf, wd)
+	normalLoad(config, wd)
 	return subcommands.ExitSuccess
 }
 

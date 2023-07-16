@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -172,6 +173,10 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 		// try to read key file
 		keyData, err := fs.ReadFile(c.kDir, keyName)
 		if err != nil {
+			// ignore the file if the certificate doesn't exist
+			if os.IsNotExist(err) {
+				continue
+			}
 			return fmt.Errorf("failed to read key file '%s': %w", keyName, err)
 		}
 
