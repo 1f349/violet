@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/MrMelon54/violet/target"
+	"github.com/1f349/violet/target"
 )
 
 type sourceJson struct {

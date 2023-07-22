@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/target"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/target"
 	"net/http"
 	"net/http/httptest"
 	"net/url"

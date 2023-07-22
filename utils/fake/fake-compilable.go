@@ -1,6 +1,6 @@
 package fake
 
-import "github.com/MrMelon54/violet/utils"
+import "github.com/1f349/violet/utils"
 
 // Compilable implements utils.Compilable and stores if the Compile function
 // is called.

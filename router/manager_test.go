@@ -2,8 +2,8 @@ package router
 
 import (
 	"database/sql"
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/target"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/target"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"net/http"

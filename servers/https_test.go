@@ -2,11 +2,11 @@ package servers
 
 import (
 	"database/sql"
-	"github.com/MrMelon54/violet/certs"
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/router"
-	"github.com/MrMelon54/violet/servers/conf"
-	"github.com/MrMelon54/violet/utils/fake"
+	"github.com/1f349/violet/certs"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/router"
+	"github.com/1f349/violet/servers/conf"
+	"github.com/1f349/violet/utils/fake"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"net/http"

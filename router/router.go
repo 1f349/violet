@@ -2,10 +2,10 @@ package router
 
 import (
 	"fmt"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/target"
+	"github.com/1f349/violet/utils"
 	"github.com/MrMelon54/trie"
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/target"
-	"github.com/MrMelon54/violet/utils"
 	"net/http"
 	"strings"
 )

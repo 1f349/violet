@@ -3,8 +3,8 @@ package target
 import (
 	"context"
 	"fmt"
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/utils"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/utils"
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
 	"io"

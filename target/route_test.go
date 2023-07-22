@@ -2,7 +2,7 @@ package target
 
 import (
 	"bytes"
-	"github.com/MrMelon54/violet/proxy"
+	"github.com/1f349/violet/proxy"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"

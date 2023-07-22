@@ -3,9 +3,9 @@ package servers
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/MrMelon54/violet/favicons"
-	"github.com/MrMelon54/violet/servers/conf"
-	"github.com/MrMelon54/violet/utils"
+	"github.com/1f349/violet/favicons"
+	"github.com/1f349/violet/servers/conf"
+	"github.com/1f349/violet/utils"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
 	"log"

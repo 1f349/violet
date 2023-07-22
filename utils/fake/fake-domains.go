@@ -1,6 +1,6 @@
 package fake
 
-import "github.com/MrMelon54/violet/utils"
+import "github.com/1f349/violet/utils"
 
 // Domains implements DomainProvider and makes sure `example.com` is valid
 type Domains struct{}

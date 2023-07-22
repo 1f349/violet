@@ -1,4 +1,4 @@
-module github.com/MrMelon54/violet
+module github.com/1f349/violet
 
 go 1.20
 

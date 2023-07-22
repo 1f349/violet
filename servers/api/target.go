@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/1f349/violet/router"
+	"github.com/1f349/violet/target"
+	"github.com/1f349/violet/utils"
 	"github.com/MrMelon54/mjwt"
-	"github.com/MrMelon54/violet/router"
-	"github.com/MrMelon54/violet/target"
-	"github.com/MrMelon54/violet/utils"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"

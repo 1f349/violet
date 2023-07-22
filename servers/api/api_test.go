@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/MrMelon54/violet/servers/conf"
-	"github.com/MrMelon54/violet/utils"
-	"github.com/MrMelon54/violet/utils/fake"
+	"github.com/1f349/violet/servers/conf"
+	"github.com/1f349/violet/utils"
+	"github.com/1f349/violet/utils/fake"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"

@@ -3,9 +3,9 @@ package router
 import (
 	"database/sql"
 	_ "embed"
+	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/target"
 	"github.com/MrMelon54/rescheduler"
-	"github.com/MrMelon54/violet/proxy"
-	"github.com/MrMelon54/violet/target"
 	"log"
 	"net/http"
 	"sync"

@@ -3,8 +3,8 @@ package domains
 import (
 	"database/sql"
 	_ "embed"
+	"github.com/1f349/violet/utils"
 	"github.com/MrMelon54/rescheduler"
-	"github.com/MrMelon54/violet/utils"
 	"log"
 	"strings"
 	"sync"

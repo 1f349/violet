@@ -2,7 +2,7 @@ package target
 
 import (
 	"fmt"
-	"github.com/MrMelon54/violet/utils"
+	"github.com/1f349/violet/utils"
 	"net/http"
 	"net/url"
 	"path"
