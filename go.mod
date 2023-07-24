@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MrMelon54/certgen v0.0.1
+	github.com/MrMelon54/exit-reload v0.0.1
 	github.com/MrMelon54/mjwt v0.1.1
 	github.com/MrMelon54/png2ico v1.0.1
 	github.com/MrMelon54/rescheduler v0.0.1

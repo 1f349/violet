@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/domains"
 	errorPages "github.com/1f349/violet/error-pages"
@@ -16,16 +15,14 @@ import (
 	"github.com/1f349/violet/servers/api"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
+	"github.com/MrMelon54/exit-reload"
 	"github.com/MrMelon54/mjwt"
 	"github.com/google/subcommands"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
-	"time"
 )
 
 type serveCmd struct{ configPath string }
@@ -157,27 +154,18 @@ func normalLoad(startUp startUpConfig, wd string) {
 		go utils.RunBackgroundHttps("HTTPS", srvHttps)
 	}
 
-	// Wait for exit signal
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-sc
-	fmt.Println()
-
-	// Stop servers
-	log.Printf("[Violet] Stopping...")
-	n := time.Now()
-
-	// close http servers
-	if srvApi != nil {
-		srvApi.Close()
-	}
-	if srvHttp != nil {
-		srvHttp.Close()
-	}
-	if srvHttps != nil {
-		srvHttps.Close()
-	}
-
-	log.Printf("[Violet] Took '%s' to shutdown\n", time.Now().Sub(n))
-	log.Println("[Violet] Goodbye")
+	exit_reload.ExitReload("Violet", func() {
+		allCompilables.Compile()
+	}, func() {
+		// close http servers
+		if srvApi != nil {
+			srvApi.Close()
+		}
+		if srvHttp != nil {
+			srvHttp.Close()
+		}
+		if srvHttps != nil {
+			srvHttps.Close()
+		}
+	})
 }
