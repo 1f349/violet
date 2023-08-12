@@ -62,6 +62,7 @@ func domainManage(verify mjwt.Verifier, domains utils.DomainProvider) httprouter
 		// add domain with active state
 		domains.Put(params.ByName("domain"), req.Method == http.MethodPut)
 		domains.Compile()
+		rw.WriteHeader(http.StatusAccepted)
 	})
 }
 

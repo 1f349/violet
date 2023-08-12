@@ -9,7 +9,6 @@ import (
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
 	"log"
-	"net"
 	"net/http"
 	"path"
 	"time"
@@ -18,9 +17,16 @@ import (
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
 func NewHttpsServer(conf *conf.Conf) *http.Server {
+	r := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		log.Printf("[Debug] Request: %s - '%s' - '%s' - '%s' - len: %d\n", req.Method, req.URL.String(), req.RemoteAddr, req.Host, req.ContentLength)
+		conf.Router.ServeHTTP(rw, req)
+	})
+	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
+	rateLimiter := setupRateLimiter(conf.RateLimit, favMiddleware)
+
 	return &http.Server{
 		Addr:    conf.HttpsListen,
-		Handler: setupRateLimiter(conf.RateLimit, setupFaviconMiddleware(conf.Favicons, conf.Router)),
+		Handler: rateLimiter,
 		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			// error out on invalid domains
 			if !conf.Domains.IsValid(info.ServerName) {
@@ -41,9 +47,6 @@ func NewHttpsServer(conf *conf.Conf) *http.Server {
 		WriteTimeout:      150 * time.Second,
 		IdleTimeout:       150 * time.Second,
 		MaxHeaderBytes:    4096000,
-		ConnState: func(conn net.Conn, state http.ConnState) {
-			fmt.Printf("[HTTPS] %s => %s: %s\n", conn.LocalAddr(), conn.RemoteAddr(), state.String())
-		},
 	}
 }
 
