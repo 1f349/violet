@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	routeFlagMask    = FlagPre | FlagAbs | FlagCors | FlagSecureMode | FlagForwardHost | FlagForwardAddr | FlagIgnoreCert
+	routeFlagMask    = FlagPre | FlagAbs | FlagCors | FlagSecureMode | FlagForwardHost | FlagForwardAddr | FlagIgnoreCert | FlagWebsocket
 	redirectFlagMask = FlagPre | FlagAbs
 )
 

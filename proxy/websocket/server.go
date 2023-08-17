@@ -33,6 +33,8 @@ func NewServer() *Server {
 }
 
 func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
+	log.Printf("[Websocket] Upgrading request to '%s' from '%s'\n", req.URL.String(), req.Header.Get("Origin"))
+
 	c, err := upgrader.Upgrade(rw, req, nil)
 	if err != nil {
 		return
