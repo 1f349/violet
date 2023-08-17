@@ -170,7 +170,7 @@ func normalLoad(startUp startUpConfig, wd string) {
 			_ = srvHttp.Close()
 		}
 		if srvHttps != nil {
-			_ = srvHttps.Shutdown(context.Background())
+			_ = srvHttps.Close()
 		}
 	})
 }

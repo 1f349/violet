@@ -33,6 +33,7 @@ func NewServer() *Server {
 }
 
 func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
+	req.URL.Scheme = "ws"
 	log.Printf("[Websocket] Upgrading request to '%s' from '%s'\n", req.URL.String(), req.Header.Get("Origin"))
 
 	c, err := upgrader.Upgrade(rw, req, nil)
@@ -55,16 +56,17 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("[Websocket] Dialing: '%s'\n", req.URL.String())
 
 	// dial for internal connection
-	ic, _, err := websocket.DefaultDialer.DialContext(req.Context(), req.URL.String(), req.Header)
+	ic, _, err := websocket.DefaultDialer.DialContext(req.Context(), req.URL.String(), nil)
 	if err != nil {
+		log.Printf("[Websocket] Failed to dial '%s': %s\n", req.URL.String(), err)
 		s.Remove(c)
 		return
 	}
 	done := make(chan struct{}, 1)
 
 	// relay messages each way
-	s.wsRelay(done, c, ic)
-	s.wsRelay(done, ic, c)
+	go s.wsRelay(done, c, ic)
+	go s.wsRelay(done, ic, c)
 
 	// wait for done signal and close both connections
 	go func() {
@@ -72,6 +74,8 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 		_ = c.Close()
 		_ = ic.Close()
 	}()
+
+	log.Println("[Websocket] Completed websocket hijacking")
 }
 
 func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
@@ -81,6 +85,7 @@ func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
 	for {
 		mt, message, err := a.ReadMessage()
 		if err != nil {
+			log.Println("Websocket read message error: ", err)
 			return
 		}
 		if b.WriteMessage(mt, message) != nil {
