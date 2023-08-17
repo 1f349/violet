@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: Violet
+  description: Violet
+  version: 1.0.0
+  contact:
+    name: Webmaster
+    email: webmaster@1f349.net
+servers:
+  - url: 'https://api.1f349.net/v1/violet'
+paths:
+  /compile:
+    post:
+      summary: Compile quick access data
+      tags:
+        - compile
+      responses:
+        '202':
+          description: Compile trigger sent
+  /domain/{domain}:
+    put:
+      summary: Add an allowed domain
+      tags:
+        - domain
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          description: The domain to add
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Domain added and compiled list reloaded
+    delete:
+      summary: Remove an allowed domain
+      tags:
+        - domain
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          description: The domain to remove
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Domain removed and compiled list reloaded
+  /acme-challenge/{domain}/{key}/{value}:
+    put:
+      summary: Add ACME challenge value
+      tags:
+        - acme-challenge
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          description: The domain to add the challenge on
+          schema:
+            type: string
+      responses:
+        '202':
+          description: ACME challenge added
+    delete:
+      summary: Add ACME challenge value
+      tags:
+        - acme-challenge
+      parameters:
+        - name: domain
+          in: path
+          required: true
+          description: The domain to add the challenge on
+          schema:
+            type: string
+      responses:
+        '202':
+          description: ACME challenge added

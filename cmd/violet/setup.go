@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/1f349/violet/domains"
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/target"
 	"github.com/AlecAivazis/survey/v2"
@@ -180,7 +181,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 		// add with the route manager, no need to compile as this will run when opened
 		// with the serve subcommand
-		routeManager := router.NewManager(db, proxy.NewHybridTransportWithCalls(&nilTransport{}, &nilTransport{}))
+		routeManager := router.NewManager(db, proxy.NewHybridTransportWithCalls(&nilTransport{}, &nilTransport{}, &websocket.Server{}))
 		err = routeManager.InsertRoute(target.Route{
 			Src:   path.Join(apiUrl.Host, apiUrl.Path),
 			Dst:   answers.ApiListen,

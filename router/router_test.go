@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/target"
 	"net/http"
 	"net/http/httptest"
@@ -180,7 +181,7 @@ func TestRouter_AddRoute(t *testing.T) {
 	transInsecure := &fakeTransport{}
 
 	for _, i := range routeTests {
-		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
+		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure, &websocket.Server{}))
 		dst := i.dst
 		dst.Dst = path.Join("127.0.0.1:8080", dst.Dst)
 		dst.Src = path.Join("example.com", i.path)
@@ -266,7 +267,7 @@ func TestRouter_AddWildcardRoute(t *testing.T) {
 	transInsecure := &fakeTransport{}
 
 	for _, i := range routeTests {
-		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure))
+		r := New(proxy.NewHybridTransportWithCalls(transSecure, transInsecure, &websocket.Server{}))
 		dst := i.dst
 		dst.Dst = path.Join("127.0.0.1:8080", dst.Dst)
 		dst.Src = path.Join("*.example.com", i.path)

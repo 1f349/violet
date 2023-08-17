@@ -10,6 +10,7 @@ import (
 	errorPages "github.com/1f349/violet/error-pages"
 	"github.com/1f349/violet/favicons"
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/servers"
 	"github.com/1f349/violet/servers/api"
@@ -109,10 +110,11 @@ func normalLoad(startUp startUpConfig, wd string) {
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
 	keyDir := os.DirFS(filepath.Join(wd, "keys"))
 
+	ws := websocket.NewServer()
 	allowedDomains := domains.New(db)                              // load allowed domains
 	acmeChallenges := utils.NewAcmeChallenge()                     // load acme challenge store
 	allowedCerts := certs.New(certDir, keyDir, startUp.SelfSigned) // load certificate manager
-	hybridTransport := proxy.NewHybridTransport()                  // load reverse proxy
+	hybridTransport := proxy.NewHybridTransport(ws)                // load reverse proxy
 	dynamicFavicons := favicons.New(db, startUp.InkscapeCmd)       // load dynamic favicon provider
 	dynamicErrorPages := errorPages.New(errorPageDir)              // load dynamic error page provider
 	dynamicRouter := router.NewManager(db, hybridTransport)        // load dynamic router manager
@@ -167,5 +169,6 @@ func normalLoad(startUp startUpConfig, wd string) {
 		if srvHttps != nil {
 			srvHttps.Close()
 		}
+		ws.Shutdown()
 	})
 }

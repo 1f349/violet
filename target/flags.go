@@ -10,6 +10,7 @@ const (
 	FlagForwardHost
 	FlagForwardAddr
 	FlagIgnoreCert
+	FlagWebsocket
 )
 
 var (

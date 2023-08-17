@@ -3,8 +3,10 @@ package target
 import (
 	"bytes"
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,7 +18,7 @@ type proxyTester struct {
 }
 
 func (p *proxyTester) makeHybridTransport() *proxy.HybridTransport {
-	return proxy.NewHybridTransportWithCalls(p, p)
+	return proxy.NewHybridTransportWithCalls(p, p, &websocket.Server{})
 }
 
 func (p *proxyTester) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -52,7 +54,9 @@ func TestRoute_ServeHTTP(t *testing.T) {
 		assert.True(t, pt.got)
 		assert.Equal(t, i.target, pt.req.URL.String())
 		if i.HasFlag(FlagForwardAddr) {
-			assert.Equal(t, req.RemoteAddr, pt.req.Header.Get("X-Forwarded-For"))
+			host, _, err := net.SplitHostPort(req.RemoteAddr)
+			assert.NoError(t, err)
+			assert.Equal(t, host, pt.req.Header.Get("X-Forwarded-For"))
 		}
 		if i.HasFlag(FlagForwardHost) {
 			assert.Equal(t, req.Host, pt.req.Host)

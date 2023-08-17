@@ -1,10 +1,10 @@
 package target
 
 import (
-	"context"
 	"fmt"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/utils"
+	websocket2 "github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
 	"io"
@@ -138,12 +138,18 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if r.HasFlag(FlagForwardHost) {
 		req2.Host = req.Host
 	}
-	if r.HasFlag(FlagForwardAddr) {
-		req2.Header.Add("X-Forwarded-For", req.RemoteAddr)
-	}
 
 	// adds extra request metadata
-	r.internalReverseProxyMeta(rw, req)
+	if r.internalReverseProxyMeta(rw, req, req2) {
+		return
+	}
+
+	// switch to websocket handler
+	// internally the http hijack method is called
+	if r.HasFlag(FlagWebsocket) && websocket2.IsWebSocketUpgrade(req2) {
+		r.Proxy.ConnectWebsocket(rw, req2)
+		return
+	}
 
 	// serve request with reverse proxy
 	var resp *http.Response
@@ -183,21 +189,20 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // due to the highly custom nature of this reverse proxy software we use a copy
 // of the code instead of the full httputil implementation to prevent overhead
 // from the more generic implementation
-func (r Route) internalReverseProxyMeta(rw http.ResponseWriter, req *http.Request) {
-	outreq := req.Clone(context.Background())
+func (r Route) internalReverseProxyMeta(rw http.ResponseWriter, req, req2 *http.Request) bool {
 	if req.ContentLength == 0 {
-		outreq.Body = nil // Issue 16036: nil Body for http.Transport retries
+		req2.Body = nil // Issue 16036: nil Body for http.Transport retries
 	}
-	if outreq.Header == nil {
-		outreq.Header = make(http.Header) // Issue 33142: historical behavior was to always allocate
+	if req2.Header == nil {
+		req2.Header = make(http.Header) // Issue 33142: historical behavior was to always allocate
 	}
 
-	reqUpType := upgradeType(outreq.Header)
+	reqUpType := upgradeType(req2.Header)
 	if !asciiIsPrint(reqUpType) {
 		utils.RespondVioletError(rw, http.StatusBadRequest, fmt.Sprintf("client tried to switch to invalid protocol %q", reqUpType))
-		return
+		return true
 	}
-	removeHopByHopHeaders(outreq.Header)
+	removeHopByHopHeaders(req2.Header)
 
 	// Issue 21096: tell backend applications that care about trailer support
 	// that we support trailers. (We do, but we don't go out of our way to
@@ -205,29 +210,33 @@ func (r Route) internalReverseProxyMeta(rw http.ResponseWriter, req *http.Reques
 	// mentioning.) Note that we look at req.Header, not outreq.Header, since
 	// the latter has passed through removeHopByHopHeaders.
 	if httpguts.HeaderValuesContainsToken(req.Header["Te"], "trailers") {
-		outreq.Header.Set("Te", "trailers")
+		req2.Header.Set("Te", "trailers")
 	}
 
 	// After stripping all the hop-by-hop connection headers above, add back any
 	// necessary for protocol upgrades, such as for websockets.
 	if reqUpType != "" {
-		outreq.Header.Set("Connection", "Upgrade")
-		outreq.Header.Set("Upgrade", reqUpType)
+		req2.Header.Set("Connection", "Upgrade")
+		req2.Header.Set("Upgrade", reqUpType)
 	}
 
-	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
-		// If we aren't the first proxy retain prior
-		// X-Forwarded-For information as a comma+space
-		// separated list and fold multiple headers into one.
-		prior, ok := outreq.Header["X-Forwarded-For"]
-		omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
-		if len(prior) > 0 {
-			clientIP = strings.Join(prior, ", ") + ", " + clientIP
-		}
-		if !omit {
-			outreq.Header.Set("X-Forwarded-For", clientIP)
+	if r.HasFlag(FlagForwardAddr) {
+		if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+			// If we aren't the first proxy retain prior
+			// X-Forwarded-For information as a comma+space
+			// separated list and fold multiple headers into one.
+			prior, ok := req2.Header["X-Forwarded-For"]
+			omit := ok && prior == nil // Issue 38079: nil now means don't populate the header
+			if len(prior) > 0 {
+				clientIP = strings.Join(prior, ", ") + ", " + clientIP
+			}
+			if !omit {
+				req2.Header.Set("X-Forwarded-For", clientIP)
+			}
 		}
 	}
+
+	return false
 }
 
 // String outputs a debug string for the route.

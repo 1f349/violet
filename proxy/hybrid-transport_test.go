@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewHybridTransport(t *testing.T) {
-	h := NewHybridTransport()
+	h := NewHybridTransport(nil)
 	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
 	assert.NoError(t, err)
 	trip, err := h.SecureRoundTrip(req)

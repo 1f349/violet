@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils/fake"
@@ -33,7 +34,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 		Domains:   &fake.Domains{},
 		Certs:     certs.New(nil, nil, true),
 		Signer:    fake.SnakeOilProv,
-		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft)),
+		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})),
 	}
 	srv := NewHttpsServer(httpsConf)
 

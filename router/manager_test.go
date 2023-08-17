@@ -3,6 +3,7 @@ package router
 import (
 	"database/sql"
 	"github.com/1f349/violet/proxy"
+	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/target"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestNewManager(t *testing.T) {
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}
-	ht := proxy.NewHybridTransportWithCalls(ft, ft)
+	ht := proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})
 	m := NewManager(db, ht)
 	assert.NoError(t, m.internalCompile(m.r))
 
