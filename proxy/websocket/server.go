@@ -40,16 +40,17 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	s.connLock.Lock()
-	defer s.connLock.Unlock()
 
 	// no more connections allowed
 	if s.connStop {
+		s.connLock.Unlock()
 		_ = c.Close()
 		return
 	}
 
 	// save connection for shutdown
 	s.conns[c.RemoteAddr().String()] = c
+	s.connLock.Unlock()
 
 	log.Printf("[Websocket] Dialing: '%s'\n", req.URL.String())
 
