@@ -164,13 +164,13 @@ func normalLoad(startUp startUpConfig, wd string) {
 
 		// close http servers
 		if srvApi != nil {
-			srvApi.Close()
+			_ = srvApi.Close()
 		}
 		if srvHttp != nil {
-			srvHttp.Close()
+			_ = srvHttp.Close()
 		}
 		if srvHttps != nil {
-			srvHttps.Close()
+			_ = srvHttps.Shutdown(context.Background())
 		}
 	})
 }
