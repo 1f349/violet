@@ -159,6 +159,9 @@ func normalLoad(startUp startUpConfig, wd string) {
 	exit_reload.ExitReload("Violet", func() {
 		allCompilables.Compile()
 	}, func() {
+		// close websockets first
+		ws.Shutdown()
+
 		// close http servers
 		if srvApi != nil {
 			srvApi.Close()
@@ -169,6 +172,5 @@ func normalLoad(startUp startUpConfig, wd string) {
 		if srvHttps != nil {
 			srvHttps.Close()
 		}
-		ws.Shutdown()
 	})
 }
