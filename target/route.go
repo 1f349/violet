@@ -172,14 +172,6 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if resp.Body != nil {
 		_, err := io.Copy(rw, resp.Body)
 		if err != nil {
-			// hijack and close upon error
-			if h, ok := rw.(http.Hijacker); ok {
-				hijack, _, err := h.Hijack()
-				if err != nil {
-					return
-				}
-				_ = hijack.Close()
-			}
 			return
 		}
 	}

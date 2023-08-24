@@ -39,7 +39,7 @@ func (s *serveCmd) Usage() string {
 `
 }
 
-func (s *serveCmd) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	log.Println("[Violet] Starting...")
 
 	if s.configPath == "" {
