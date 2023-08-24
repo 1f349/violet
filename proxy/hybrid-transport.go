@@ -3,6 +3,8 @@ package proxy
 import (
 	"crypto/tls"
 	"github.com/1f349/violet/proxy/websocket"
+	"github.com/google/uuid"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -67,15 +69,24 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 
 // SecureRoundTrip calls the secure transport
 func (h *HybridTransport) SecureRoundTrip(req *http.Request) (*http.Response, error) {
+	u := uuid.New()
+	log.Println("[Transport] Start upgrade:", u)
+	defer log.Println("[Transport] Stop upgrade:", u)
 	return h.normalTransport.RoundTrip(req)
 }
 
 // InsecureRoundTrip calls the insecure transport
 func (h *HybridTransport) InsecureRoundTrip(req *http.Request) (*http.Response, error) {
+	u := uuid.New()
+	log.Println("[Transport insecure] Start upgrade:", u)
+	defer log.Println("[Transport insecure] Stop upgrade:", u)
 	return h.insecureTransport.RoundTrip(req)
 }
 
 // ConnectWebsocket calls the websocket upgrader and thus hijacks the connection
 func (h *HybridTransport) ConnectWebsocket(rw http.ResponseWriter, req *http.Request) {
+	u := uuid.New()
+	log.Println("[Websocket] Start upgrade:", u)
 	h.ws.Upgrade(rw, req)
+	log.Println("[Websocket] Stop upgrade:", u)
 }
