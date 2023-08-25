@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 )
@@ -155,6 +156,10 @@ func normalLoad(startUp startUpConfig, wd string) {
 		log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", srvHttps.Addr)
 		go utils.RunBackgroundHttps("HTTPS", srvHttps)
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6600", nil))
+	}()
 
 	exit_reload.ExitReload("Violet", func() {
 		allCompilables.Compile()
