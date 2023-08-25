@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"runtime"
 	"time"
 )
 
@@ -18,7 +19,7 @@ import (
 // endpoints for the reverse proxy.
 func NewHttpsServer(conf *conf.Conf) *http.Server {
 	r := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		log.Printf("[Debug] Request: %s - '%s' - '%s' - '%s' - len: %d\n", req.Method, req.URL.String(), req.RemoteAddr, req.Host, req.ContentLength)
+		log.Printf("[Debug] Request: %s - '%s' - '%s' - '%s' - len: %d - thread: %d\n", req.Method, req.URL.String(), req.RemoteAddr, req.Host, req.ContentLength, runtime.NumGoroutine())
 		conf.Router.ServeHTTP(rw, req)
 	})
 	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
