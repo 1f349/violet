@@ -62,15 +62,19 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 		s.Remove(c)
 		return
 	}
-	done := make(chan struct{}, 1)
+	d1 := make(chan struct{}, 1)
+	d2 := make(chan struct{}, 1)
 
 	// relay messages each way
-	go s.wsRelay(done, c, ic)
-	go s.wsRelay(done, ic, c)
+	go s.wsRelay(d1, c, ic)
+	go s.wsRelay(d2, ic, c)
 
 	// wait for done signal and close both connections
 	go func() {
-		<-done
+		select {
+		case <-d1:
+		case <-d2:
+		}
 		_ = c.Close()
 		_ = ic.Close()
 	}()
@@ -80,7 +84,7 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 
 func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
 	defer func() {
-		done <- struct{}{}
+		close(done)
 	}()
 	for {
 		mt, message, err := a.ReadMessage()

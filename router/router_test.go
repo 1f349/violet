@@ -1,9 +1,12 @@
 package router
 
 import (
+	"fmt"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/target"
+	"github.com/MrMelon54/trie"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -299,4 +302,25 @@ func TestRouter_AddWildcardRoute(t *testing.T) {
 			}
 		}
 	}
+}
+
+type fakeRoundTripper struct{}
+
+func (f *fakeRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
+	rec := httptest.NewRecorder()
+	rec.WriteHeader(http.StatusNotFound)
+	return rec.Result(), nil
+}
+
+func TestGetServeData_Route(t *testing.T) {
+	hyb := proxy.NewHybridTransportWithCalls(&fakeRoundTripper{}, &fakeRoundTripper{}, nil)
+	req, err := http.NewRequest(http.MethodGet, "https://example.com/hello/world/this/is/a/test", nil)
+	assert.NoError(t, err)
+	h := trie.BuildFromMap(map[string]target.Route{
+		"/hello/world": {Flags: target.FlagPre, Proxy: hyb},
+	})
+	rec := httptest.NewRecorder()
+	pairs := h.GetAllKeyValues([]byte(req.URL.Path))
+	fmt.Printf("%#v\n", pairs)
+	assert.True(t, getServeData(rec, req, h))
 }

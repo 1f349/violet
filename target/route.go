@@ -48,6 +48,10 @@ type RouteWithActive struct {
 	Active bool `json:"active"`
 }
 
+func (r Route) HasFlag(flag Flags) bool {
+	return r.Flags&flag != 0
+}
+
 // UpdateHeaders takes an existing set of headers and overwrites them with the
 // extra headers.
 func (r Route) UpdateHeaders(header http.Header) {

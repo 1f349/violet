@@ -23,7 +23,7 @@ type RedirectWithActive struct {
 	Active bool `json:"active"`
 }
 
-func (r Route) HasFlag(flag Flags) bool {
+func (r Redirect) HasFlag(flag Flags) bool {
 	return r.Flags&flag != 0
 }
 
