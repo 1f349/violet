@@ -143,16 +143,19 @@ func normalLoad(startUp startUpConfig, wd string) {
 	var srvApi, srvHttp, srvHttps *http.Server
 	if srvConf.ApiListen != "" {
 		srvApi = api.NewApiServer(srvConf, allCompilables)
+		srvApi.SetKeepAlivesEnabled(false)
 		log.Printf("[API] Starting API server on: '%s'\n", srvApi.Addr)
 		go utils.RunBackgroundHttp("API", srvApi)
 	}
 	if srvConf.HttpListen != "" {
 		srvHttp = servers.NewHttpServer(srvConf)
+		srvHttp.SetKeepAlivesEnabled(false)
 		log.Printf("[HTTP] Starting HTTP server on: '%s'\n", srvHttp.Addr)
 		go utils.RunBackgroundHttp("HTTP", srvHttp)
 	}
 	if srvConf.HttpsListen != "" {
 		srvHttps = servers.NewHttpsServer(srvConf)
+		srvHttps.SetKeepAlivesEnabled(false)
 		log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", srvHttps.Addr)
 		go utils.RunBackgroundHttps("HTTPS", srvHttps)
 	}
