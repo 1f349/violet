@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/utils"
+	"github.com/google/uuid"
 	websocket2 "github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
@@ -155,6 +156,8 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	req2.Header.Set("X-Violet-Loop-Detect", "1")
+
 	// serve request with reverse proxy
 	var resp *http.Response
 	if r.HasFlag(FlagIgnoreCert) {
@@ -165,6 +168,12 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Printf("[ServeRoute::ServeHTTP()] Error receiving internal round trip response: %s\n", err)
 		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
+		return
+	}
+	if resp.StatusCode == http.StatusLoopDetected {
+		u := uuid.New()
+		log.Printf("[ServeRoute::ServeHTTP()] Loop Detected: %s %s '%s' -> '%s'\n", u, req.Method, req.URL.String(), req2.URL.String())
+		utils.RespondVioletError(rw, http.StatusLoopDetected, "error loop detected: "+u.String())
 		return
 	}
 

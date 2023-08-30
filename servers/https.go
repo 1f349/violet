@@ -73,6 +73,11 @@ func setupRateLimiter(rateLimit uint64, next http.Handler) http.Handler {
 
 func setupFaviconMiddleware(fav *favicons.Favicons, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		if req.Header.Get("X-Violet-Loop-Detect") == "1" {
+			rw.WriteHeader(http.StatusLoopDetected)
+			_, _ = rw.Write([]byte("Detected a routing loop\n"))
+			return
+		}
 		if req.Header.Get("X-Violet-Raw-Favicon") != "1" {
 			switch req.URL.Path {
 			case "/favicon.svg", "/favicon.png", "/favicon.ico":
