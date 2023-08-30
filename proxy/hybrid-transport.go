@@ -49,6 +49,7 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 			IdleConnTimeout:       30 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 			ResponseHeaderTimeout: 10 * time.Second,
+			DisableKeepAlives:     true,
 		}
 	}
 	if h.insecureTransport == nil {
@@ -62,6 +63,7 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 			ExpectContinueTimeout: 1 * time.Second,
 			ResponseHeaderTimeout: 10 * time.Second,
 			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+			DisableKeepAlives:     true,
 		}
 	}
 	return h

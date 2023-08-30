@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -10,7 +11,7 @@ import (
 // RunBackgroundHttp and RunBackgroundHttps.
 func logHttpServerError(prefix string, err error) {
 	if err != nil {
-		if err == http.ErrServerClosed {
+		if errors.Is(err, http.ErrServerClosed) {
 			log.Printf("[%s] The http server shutdown successfully\n", prefix)
 		} else {
 			log.Printf("[%s] Error trying to host the http server: %s\n", prefix, err.Error())
