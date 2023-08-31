@@ -25,23 +25,39 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 )
 
-type serveCmd struct{ configPath string }
+type serveCmd struct {
+	configPath string
+	cpuprofile string
+}
 
 func (s *serveCmd) Name() string     { return "serve" }
 func (s *serveCmd) Synopsis() string { return "Serve reverse proxy server" }
 func (s *serveCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.configPath, "conf", "", "/path/to/config.json : path to the config file")
+	f.StringVar(&s.cpuprofile, "cpuprofile", "", "write cpu profile to file")
 }
 func (s *serveCmd) Usage() string {
-	return `serve [-conf <config file>]
+	return `serve [-conf <config file>] [-cpuprofile <profile file>]
   Serve reverse proxy server using information from config file
 `
 }
 
 func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	log.Println("[Violet] Starting...")
+
+	// Enable cpu profiling
+	if s.cpuprofile != "" {
+		f, err := os.Create(s.cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("[Violet] CPU profiling enabled, writing to '%s'\n", s.cpuprofile)
+		_ = pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	if s.configPath == "" {
 		log.Println("[Violet] Error: config flag is missing")
