@@ -170,6 +170,12 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
 		return
 	}
+
+	// make sure to close response body after use
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
 	if resp.StatusCode == http.StatusLoopDetected {
 		u := uuid.New()
 		log.Printf("[ServeRoute::ServeHTTP()] Loop Detected: %s %s '%s' -> '%s'\n", u, req.Method, req.URL.String(), req2.URL.String())
