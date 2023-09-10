@@ -40,12 +40,13 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
+
+	defer c.Close()
 	s.connLock.Lock()
 
 	// no more connections allowed
 	if s.connStop {
 		s.connLock.Unlock()
-		_ = c.Close()
 		return
 	}
 
@@ -62,6 +63,8 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 		s.Remove(c)
 		return
 	}
+	defer ic.Close()
+
 	d1 := make(chan struct{}, 1)
 	d2 := make(chan struct{}, 1)
 
@@ -70,16 +73,13 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	go s.wsRelay(d2, ic, c)
 
 	// wait for done signal and close both connections
-	go func() {
-		select {
-		case <-d1:
-		case <-d2:
-		}
-		_ = c.Close()
-		_ = ic.Close()
-	}()
-
 	log.Println("[Websocket] Completed websocket hijacking")
+
+	// waiting until d1 or d2 close then automatically defer close both connections
+	select {
+	case <-d1:
+	case <-d2:
+	}
 }
 
 func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
