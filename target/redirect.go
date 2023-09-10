@@ -60,6 +60,11 @@ func (r Redirect) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Path:   p,
 	}
 
+	// close the incoming body after use
+	if req.Body != nil {
+		defer req.Body.Close()
+	}
+
 	// use fast redirect for speed
 	utils.FastRedirect(rw, req, u.String(), code)
 }
