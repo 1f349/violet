@@ -18,6 +18,10 @@ import (
 func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable) *http.Server {
 	r := httprouter.New()
 
+	r.GET("/", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		http.Error(rw, "Violet API Endpoint", http.StatusOK)
+	})
+
 	// Endpoint for compile action
 	r.POST("/compile", checkAuthWithPerm(conf.Signer, "violet:compile", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params, b AuthClaims) {
 		// Trigger the compile action
