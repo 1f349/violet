@@ -48,8 +48,9 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 
 func (m *Manager) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	m.s.RLock()
-	m.r.ServeHTTP(rw, req)
+	r := m.r
 	m.s.RUnlock()
+	r.ServeHTTP(rw, req)
 }
 
 func (m *Manager) Compile() {
