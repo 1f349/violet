@@ -89,7 +89,7 @@ func acmeChallengeManage(verify mjwt.Verifier, domains utils.DomainProvider, acm
 // getDomainOwnershipClaims returns the domains marked as owned from PermStorage,
 // they match `domain:owns=<fqdn>` where fqdn will be returned
 func getDomainOwnershipClaims(perms *claims.PermStorage) []string {
-	a := perms.Search("domain:owns=")
+	a := perms.Search("domain:owns=*")
 	for i := range a {
 		a[i] = a[i][len("domain:owns="):]
 	}
