@@ -16,7 +16,7 @@ func TestCertsNew_Lookup(t *testing.T) {
 	// type to test that certificate files can be found and read correctly. This
 	// uses a MapFS for performance during tests.
 
-	ca, err := certgen.MakeCaTls(4096, pkix.Name{
+	ca, err := certgen.MakeCaTls(2048, pkix.Name{
 		Country:            []string{"GB"},
 		Organization:       []string{"Violet"},
 		OrganizationalUnit: []string{"Development"},
@@ -29,7 +29,7 @@ func TestCertsNew_Lookup(t *testing.T) {
 
 	domain := "example.com"
 	sn := int64(1)
-	serverTls, err := certgen.MakeServerTls(ca, 4096, pkix.Name{
+	serverTls, err := certgen.MakeServerTls(ca, 2048, pkix.Name{
 		Country:            []string{"GB"},
 		Organization:       []string{domain},
 		OrganizationalUnit: []string{domain},
@@ -63,6 +63,10 @@ func TestCertsNew_Lookup(t *testing.T) {
 }
 
 func TestCertsNew_SelfSigned(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
 	certs := New(nil, nil, true)
 	cc := certs.GetCertForDomain("example.com")
 	leaf := certgen.TlsLeaf(cc)

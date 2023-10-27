@@ -6,7 +6,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/MrMelon54/certgen v0.0.1
 	github.com/MrMelon54/exit-reload v0.0.1
-	github.com/MrMelon54/mjwt v0.1.1
+	github.com/MrMelon54/mjwt v0.1.3
 	github.com/MrMelon54/png2ico v1.0.1
 	github.com/MrMelon54/rescheduler v0.0.1
 	github.com/MrMelon54/trie v0.0.2
@@ -23,6 +23,7 @@ require (
 )
 
 require (
+	github.com/becheran/wildmatch-go v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

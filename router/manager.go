@@ -8,6 +8,7 @@ import (
 	"github.com/MrMelon54/rescheduler"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -140,10 +141,23 @@ func (m *Manager) internalCompile(router *Router) error {
 	return rows.Err()
 }
 
-func (m *Manager) GetAllRoutes() ([]target.RouteWithActive, error) {
+func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error) {
+	if len(hosts) < 1 {
+		return []target.RouteWithActive{}, nil
+	}
+
+	var searchString strings.Builder
+	searchString.WriteString("WHERE ")
+	for i := range hosts {
+		if i != 0 {
+			searchString.WriteString(" OR ")
+		}
+		searchString.WriteString("source LIKE ?")
+	}
+
 	s := make([]target.RouteWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes`)
+	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `+searchString.String(), hosts)
 	if err != nil {
 		return nil, err
 	}
@@ -169,10 +183,23 @@ func (m *Manager) DeleteRoute(source string) error {
 	return err
 }
 
-func (m *Manager) GetAllRedirects() ([]target.RedirectWithActive, error) {
+func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, error) {
+	if len(hosts) < 1 {
+		return []target.RedirectWithActive{}, nil
+	}
+
+	var searchString strings.Builder
+	searchString.WriteString("WHERE ")
+	for i := range hosts {
+		if i != 0 {
+			searchString.WriteString(" OR ")
+		}
+		searchString.WriteString("source LIKE ?")
+	}
+
 	s := make([]target.RedirectWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects`)
+	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects `+searchString.String(), hosts)
 	if err != nil {
 		return nil, err
 	}

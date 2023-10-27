@@ -15,7 +15,9 @@ import (
 func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router.Manager) {
 	// Endpoint for routes
 	r.GET("/route", checkAuthWithPerm(verify, "violet:route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
-		routes, err := manager.GetAllRoutes()
+		domains := getDomainOwnershipClaims(b.Claims.Perms)
+
+		routes, err := manager.GetAllRoutes(domains)
 		if err != nil {
 			apiError(rw, http.StatusInternalServerError, "Failed to get routes from database")
 			return
@@ -44,7 +46,9 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 
 	// Endpoint for redirects
 	r.GET("/redirect", checkAuthWithPerm(verify, "violet:redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
-		redirects, err := manager.GetAllRedirects()
+		domains := getDomainOwnershipClaims(b.Claims.Perms)
+
+		redirects, err := manager.GetAllRedirects(domains)
 		if err != nil {
 			apiError(rw, http.StatusInternalServerError, "Failed to get redirects from database")
 			return
