@@ -49,6 +49,17 @@ type RouteWithActive struct {
 	Active bool `json:"active"`
 }
 
+func (r Route) OnDomain(domain string) bool {
+	// if there is no / then the first part is still the domain
+	domainPart, _, _ := strings.Cut(r.Src, "/")
+	if domainPart == domain {
+		return true
+	}
+
+	// domainPart could start with a subdomain
+	return strings.HasSuffix(domainPart, "."+domain)
+}
+
 func (r Route) HasFlag(flag Flags) bool {
 	return r.Flags&flag != 0
 }

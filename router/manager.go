@@ -146,18 +146,11 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 		return []target.RouteWithActive{}, nil
 	}
 
-	var searchString strings.Builder
-	searchString.WriteString("WHERE ")
-	for i := range hosts {
-		if i != 0 {
-			searchString.WriteString(" OR ")
-		}
-		searchString.WriteString("source LIKE ?")
-	}
+	searchString, hostArgs := generateRouteAndRedirectSearch(hosts)
 
 	s := make([]target.RouteWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `+searchString.String(), hosts)
+	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `+searchString, hostArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +160,14 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Active) != nil {
 			return nil, err
 		}
-		s = append(s, a)
+
+		for _, i := range hosts {
+			// if this is never true then the domain was mistakenly grabbed from the database
+			if a.OnDomain(i) {
+				s = append(s, a)
+				break
+			}
+		}
 	}
 
 	return s, nil
@@ -188,18 +188,11 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 		return []target.RedirectWithActive{}, nil
 	}
 
-	var searchString strings.Builder
-	searchString.WriteString("WHERE ")
-	for i := range hosts {
-		if i != 0 {
-			searchString.WriteString(" OR ")
-		}
-		searchString.WriteString("source LIKE ?")
-	}
+	searchString, hostArgs := generateRouteAndRedirectSearch(hosts)
 
 	s := make([]target.RedirectWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects `+searchString.String(), hosts)
+	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects `+searchString, hostArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +202,14 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Code, &a.Active) != nil {
 			return nil, err
 		}
-		s = append(s, a)
+
+		for _, i := range hosts {
+			// if this is never true then the domain was mistakenly grabbed from the database
+			if a.OnDomain(i) {
+				s = append(s, a)
+				break
+			}
+		}
 	}
 
 	return s, nil
@@ -223,4 +223,25 @@ func (m *Manager) InsertRedirect(redirect target.Redirect) error {
 func (m *Manager) DeleteRedirect(source string) error {
 	_, err := m.db.Exec(`UPDATE redirects SET active = 0 WHERE source = ?`, source)
 	return err
+}
+
+func generateRouteAndRedirectSearch(hosts []string) (string, []string) {
+	var searchString strings.Builder
+	searchString.WriteString("WHERE ")
+
+	hostArgs := make([]string, len(hosts)*2)
+	for i := range hosts {
+		if i != 0 {
+			searchString.WriteString(" OR ")
+		}
+		// these like checks are not perfect but do reduce load on the database
+		searchString.WriteString("source LIKE '%' + ? + '/%'")
+		searchString.WriteString(" OR source LIKE '%' + ?")
+
+		// loads the hostname into even and odd args
+		hostArgs[i*2] = hosts[i]
+		hostArgs[i*2+1] = hosts[i]
+	}
+
+	return searchString.String(), hostArgs
 }
