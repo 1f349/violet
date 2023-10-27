@@ -146,11 +146,9 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 		return []target.RouteWithActive{}, nil
 	}
 
-	searchString, hostArgs := generateRouteAndRedirectSearch(hosts)
-
 	s := make([]target.RouteWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `+searchString, hostArgs)
+	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `)
 	if err != nil {
 		return nil, err
 	}
@@ -188,11 +186,9 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 		return []target.RedirectWithActive{}, nil
 	}
 
-	searchString, hostArgs := generateRouteAndRedirectSearch(hosts)
-
 	s := make([]target.RedirectWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects `+searchString, hostArgs)
+	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects`)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +221,9 @@ func (m *Manager) DeleteRedirect(source string) error {
 	return err
 }
 
-func generateRouteAndRedirectSearch(hosts []string) (string, []string) {
+// GenerateHostSearch this should help improve performance
+// TODO(Melon) discover how to implement this correctly
+func GenerateHostSearch(hosts []string) (string, []string) {
 	var searchString strings.Builder
 	searchString.WriteString("WHERE ")
 

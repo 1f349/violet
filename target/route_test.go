@@ -27,6 +27,17 @@ func (p *proxyTester) RoundTrip(req *http.Request) (*http.Response, error) {
 	return &http.Response{StatusCode: http.StatusOK}, nil
 }
 
+func TestRoute_OnDomain(t *testing.T) {
+	assert.True(t, Route{Src: "example.com"}.OnDomain("example.com"))
+	assert.True(t, Route{Src: "test.example.com"}.OnDomain("example.com"))
+	assert.True(t, Route{Src: "example.com/hello"}.OnDomain("example.com"))
+	assert.True(t, Route{Src: "test.example.com/hello"}.OnDomain("example.com"))
+	assert.False(t, Route{Src: "example.com"}.OnDomain("example.org"))
+	assert.False(t, Route{Src: "test.example.com"}.OnDomain("example.org"))
+	assert.False(t, Route{Src: "example.com/hello"}.OnDomain("example.org"))
+	assert.False(t, Route{Src: "test.example.com/hello"}.OnDomain("example.org"))
+}
+
 func TestRoute_HasFlag(t *testing.T) {
 	assert.True(t, Route{Flags: FlagPre | FlagAbs}.HasFlag(FlagPre))
 	assert.False(t, Route{Flags: FlagPre | FlagAbs}.HasFlag(FlagCors))

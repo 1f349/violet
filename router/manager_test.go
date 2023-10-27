@@ -50,3 +50,75 @@ func TestNewManager(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.NotNil(t, ft.req)
 }
+
+func TestManager_GetAllRoutes(t *testing.T) {
+	db, err := sql.Open("sqlite3", "file:GetAllRoutes?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := NewManager(db, nil)
+	a := []error{
+		m.InsertRoute(target.Route{Src: "example.com"}),
+		m.InsertRoute(target.Route{Src: "test.example.com"}),
+		m.InsertRoute(target.Route{Src: "example.com/hello"}),
+		m.InsertRoute(target.Route{Src: "test.example.com/hello"}),
+		m.InsertRoute(target.Route{Src: "example.org"}),
+		m.InsertRoute(target.Route{Src: "test.example.org"}),
+		m.InsertRoute(target.Route{Src: "example.org/hello"}),
+		m.InsertRoute(target.Route{Src: "test.example.org/hello"}),
+	}
+	for _, i := range a {
+		if i != nil {
+			t.Fatal(i)
+		}
+	}
+	routes, err := m.GetAllRoutes([]string{"example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, []target.RouteWithActive{
+		{Route: target.Route{Src: "example.com"}, Active: true},
+		{Route: target.Route{Src: "test.example.com"}, Active: true},
+		{Route: target.Route{Src: "example.com/hello"}, Active: true},
+		{Route: target.Route{Src: "test.example.com/hello"}, Active: true},
+	}, routes)
+}
+
+func TestManager_GetAllRedirects(t *testing.T) {
+	db, err := sql.Open("sqlite3", "file:GetAllRedirects?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := NewManager(db, nil)
+	a := []error{
+		m.InsertRoute(target.Route{Src: "example.com"}),
+		m.InsertRoute(target.Route{Src: "test.example.com"}),
+		m.InsertRoute(target.Route{Src: "example.com/hello"}),
+		m.InsertRoute(target.Route{Src: "test.example.com/hello"}),
+		m.InsertRoute(target.Route{Src: "example.org"}),
+		m.InsertRoute(target.Route{Src: "test.example.org"}),
+		m.InsertRoute(target.Route{Src: "example.org/hello"}),
+		m.InsertRoute(target.Route{Src: "test.example.org/hello"}),
+	}
+	for _, i := range a {
+		if i != nil {
+			t.Fatal(i)
+		}
+	}
+	redirects, err := m.GetAllRoutes([]string{"example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, []target.RouteWithActive{
+		{Route: target.Route{Src: "example.com"}, Active: true},
+		{Route: target.Route{Src: "test.example.com"}, Active: true},
+		{Route: target.Route{Src: "example.com/hello"}, Active: true},
+		{Route: target.Route{Src: "test.example.com/hello"}, Active: true},
+	}, redirects)
+}
+
+func TestGenerateHostSearch(t *testing.T) {
+	query, args := GenerateHostSearch([]string{"example.com", "example.org"})
+	assert.Equal(t, "WHERE source LIKE '%' + ? + '/%' OR source LIKE '%' + ? OR source LIKE '%' + ? + '/%' OR source LIKE '%' + ?", query)
+	assert.Equal(t, []string{"example.com", "example.com", "example.org", "example.org"}, args)
+}
