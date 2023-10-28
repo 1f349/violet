@@ -39,6 +39,7 @@ var serveApiCors = cors.New(cors.Options{
 type Route struct {
 	Src     string                 `json:"src"`   // request source
 	Dst     string                 `json:"dst"`   // proxy destination
+	Desc    string                 `json:"desc"`  // description for admin panel use
 	Flags   Flags                  `json:"flags"` // extra flags
 	Headers http.Header            `json:"-"`     // extra headers
 	Proxy   *proxy.HybridTransport `json:"-"`     // reverse proxy handler

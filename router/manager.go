@@ -148,14 +148,14 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 
 	s := make([]target.RouteWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, active FROM routes `)
+	query, err := m.db.Query(`SELECT source, destination, description, flags, active FROM routes`)
 	if err != nil {
 		return nil, err
 	}
 
 	for query.Next() {
 		var a target.RouteWithActive
-		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Active) != nil {
+		if query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Active) != nil {
 			return nil, err
 		}
 
@@ -172,7 +172,7 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 }
 
 func (m *Manager) InsertRoute(route target.Route) error {
-	_, err := m.db.Exec(`INSERT INTO routes (source, destination, flags) VALUES (?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, active = 1`, route.Src, route.Dst, route.Flags)
+	_, err := m.db.Exec(`INSERT INTO routes (source, destination, description, flags) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, active = 1`, route.Src, route.Dst, route.Desc, route.Flags)
 	return err
 }
 
@@ -188,14 +188,14 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 
 	s := make([]target.RedirectWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, flags, code, active FROM redirects`)
+	query, err := m.db.Query(`SELECT source, destination, description, flags, code, active FROM redirects`)
 	if err != nil {
 		return nil, err
 	}
 
 	for query.Next() {
 		var a target.RedirectWithActive
-		if query.Scan(&a.Src, &a.Dst, &a.Flags, &a.Code, &a.Active) != nil {
+		if query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Code, &a.Active) != nil {
 			return nil, err
 		}
 
@@ -212,7 +212,7 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 }
 
 func (m *Manager) InsertRedirect(redirect target.Redirect) error {
-	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, flags, code) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, flags = excluded.flags, code = excluded.code, active = 1`, redirect.Src, redirect.Dst, redirect.Flags, redirect.Code)
+	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, description, flags, code) VALUES (?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, code = excluded.code, active = 1`, redirect.Src, redirect.Dst, redirect.Desc, redirect.Flags, redirect.Code)
 	return err
 }
 

@@ -14,6 +14,7 @@ import (
 type Redirect struct {
 	Src   string `json:"src"`   // request source
 	Dst   string `json:"dst"`   // redirect destination
+	Desc  string `json:"desc"`  // description for admin panel use
 	Flags Flags  `json:"flags"` // extra flags
 	Code  int    `json:"code"`  // status code used to redirect
 }
