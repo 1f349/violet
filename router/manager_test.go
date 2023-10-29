@@ -58,14 +58,14 @@ func TestManager_GetAllRoutes(t *testing.T) {
 	}
 	m := NewManager(db, nil)
 	a := []error{
-		m.InsertRoute(target.Route{Src: "example.com"}),
-		m.InsertRoute(target.Route{Src: "test.example.com"}),
-		m.InsertRoute(target.Route{Src: "example.com/hello"}),
-		m.InsertRoute(target.Route{Src: "test.example.com/hello"}),
-		m.InsertRoute(target.Route{Src: "example.org"}),
-		m.InsertRoute(target.Route{Src: "test.example.org"}),
-		m.InsertRoute(target.Route{Src: "example.org/hello"}),
-		m.InsertRoute(target.Route{Src: "test.example.org/hello"}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.com"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "test.example.com"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.com/hello"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "test.example.com/hello"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.org"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "test.example.org"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.org/hello"}, Active: true}),
+		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "test.example.org/hello"}, Active: true}),
 	}
 	for _, i := range a {
 		if i != nil {
@@ -91,29 +91,29 @@ func TestManager_GetAllRedirects(t *testing.T) {
 	}
 	m := NewManager(db, nil)
 	a := []error{
-		m.InsertRoute(target.Route{Src: "example.com"}),
-		m.InsertRoute(target.Route{Src: "test.example.com"}),
-		m.InsertRoute(target.Route{Src: "example.com/hello"}),
-		m.InsertRoute(target.Route{Src: "test.example.com/hello"}),
-		m.InsertRoute(target.Route{Src: "example.org"}),
-		m.InsertRoute(target.Route{Src: "test.example.org"}),
-		m.InsertRoute(target.Route{Src: "example.org/hello"}),
-		m.InsertRoute(target.Route{Src: "test.example.org/hello"}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.com"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "test.example.com"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.com/hello"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "test.example.com/hello"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.org"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "test.example.org"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.org/hello"}, Active: true}),
+		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "test.example.org/hello"}, Active: true}),
 	}
 	for _, i := range a {
 		if i != nil {
 			t.Fatal(i)
 		}
 	}
-	redirects, err := m.GetAllRoutes([]string{"example.com"})
+	redirects, err := m.GetAllRedirects([]string{"example.com"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, []target.RouteWithActive{
-		{Route: target.Route{Src: "example.com"}, Active: true},
-		{Route: target.Route{Src: "test.example.com"}, Active: true},
-		{Route: target.Route{Src: "example.com/hello"}, Active: true},
-		{Route: target.Route{Src: "test.example.com/hello"}, Active: true},
+	assert.Equal(t, []target.RedirectWithActive{
+		{Redirect: target.Redirect{Src: "example.com"}, Active: true},
+		{Redirect: target.Redirect{Src: "test.example.com"}, Active: true},
+		{Redirect: target.Redirect{Src: "example.com/hello"}, Active: true},
+		{Redirect: target.Redirect{Src: "test.example.com/hello"}, Active: true},
 	}, redirects)
 }
 

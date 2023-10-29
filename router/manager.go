@@ -3,6 +3,7 @@ package router
 import (
 	"database/sql"
 	_ "embed"
+	"fmt"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
 	"github.com/MrMelon54/rescheduler"
@@ -155,7 +156,7 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 
 	for query.Next() {
 		var a target.RouteWithActive
-		if query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Active) != nil {
+		if err := query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Active); err != nil {
 			return nil, err
 		}
 
@@ -168,16 +169,18 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 		}
 	}
 
+	fmt.Println(len(s))
+
 	return s, nil
 }
 
-func (m *Manager) InsertRoute(route target.Route) error {
-	_, err := m.db.Exec(`INSERT INTO routes (source, destination, description, flags) VALUES (?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, active = 1`, route.Src, route.Dst, route.Desc, route.Flags)
+func (m *Manager) InsertRoute(route target.RouteWithActive) error {
+	_, err := m.db.Exec(`INSERT INTO routes (source, destination, description, flags, active) VALUES (?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, active = excluded.active`, route.Src, route.Dst, route.Desc, route.Flags, route.Active)
 	return err
 }
 
 func (m *Manager) DeleteRoute(source string) error {
-	_, err := m.db.Exec(`UPDATE routes SET active = 0 WHERE source = ?`, source)
+	_, err := m.db.Exec(`DELETE FROM routes WHERE source = ?`, source)
 	return err
 }
 
@@ -195,7 +198,7 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 
 	for query.Next() {
 		var a target.RedirectWithActive
-		if query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Code, &a.Active) != nil {
+		if err := query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Code, &a.Active); err != nil {
 			return nil, err
 		}
 
@@ -211,13 +214,13 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 	return s, nil
 }
 
-func (m *Manager) InsertRedirect(redirect target.Redirect) error {
-	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, description, flags, code) VALUES (?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, code = excluded.code, active = 1`, redirect.Src, redirect.Dst, redirect.Desc, redirect.Flags, redirect.Code)
+func (m *Manager) InsertRedirect(redirect target.RedirectWithActive) error {
+	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, description, flags, code, active) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, code = excluded.code, active = excluded.active`, redirect.Src, redirect.Dst, redirect.Desc, redirect.Flags, redirect.Code, redirect.Active)
 	return err
 }
 
 func (m *Manager) DeleteRedirect(source string) error {
-	_, err := m.db.Exec(`UPDATE redirects SET active = 0 WHERE source = ?`, source)
+	_, err := m.db.Exec(`DELETE FROM redirects WHERE source = ?`, source)
 	return err
 }
 

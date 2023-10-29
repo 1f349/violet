@@ -10,11 +10,11 @@ type sourceJson struct {
 
 func (s sourceJson) GetSource() string { return s.Src }
 
-type routeSource target.Route
+type routeSource target.RouteWithActive
 
 func (r routeSource) GetSource() string { return r.Src }
 
-type redirectSource target.Redirect
+type redirectSource target.RedirectWithActive
 
 func (r redirectSource) GetSource() string { return r.Src }
 

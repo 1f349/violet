@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/1f349/mjwt"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/target"
 	"github.com/1f349/violet/utils"
-	"github.com/MrMelon54/mjwt"
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
@@ -19,6 +19,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 
 		routes, err := manager.GetAllRoutes(domains)
 		if err != nil {
+			log.Printf("[Violet] Failed to get routes from database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to get routes from database")
 			return
 		}
@@ -26,7 +27,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		_ = json.NewEncoder(rw).Encode(routes)
 	}))
 	r.POST("/route", parseJsonAndCheckOwnership[routeSource](verify, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t routeSource) {
-		err := manager.InsertRoute(target.Route(t))
+		err := manager.InsertRoute(target.RouteWithActive(t))
 		if err != nil {
 			log.Printf("[Violet] Failed to insert route into database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database")
@@ -50,6 +51,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 
 		redirects, err := manager.GetAllRedirects(domains)
 		if err != nil {
+			log.Printf("[Violet] Failed to get redirects from database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to get redirects from database")
 			return
 		}
@@ -57,7 +59,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		_ = json.NewEncoder(rw).Encode(redirects)
 	}))
 	r.POST("/redirect", parseJsonAndCheckOwnership[redirectSource](verify, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t redirectSource) {
-		err := manager.InsertRedirect(target.Redirect(t))
+		err := manager.InsertRedirect(target.RedirectWithActive(t))
 		if err != nil {
 			log.Printf("[Violet] Failed to insert redirect into database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database")

@@ -2,11 +2,11 @@ package conf
 
 import (
 	"database/sql"
+	"github.com/1f349/mjwt"
 	errorPages "github.com/1f349/violet/error-pages"
 	"github.com/1f349/violet/favicons"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/utils"
-	"github.com/MrMelon54/mjwt"
 )
 
 // Conf stores the shared configuration for the API, HTTP and HTTPS servers.
