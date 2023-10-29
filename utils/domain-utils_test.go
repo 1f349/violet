@@ -52,7 +52,11 @@ func TestGetBaseDomain(t *testing.T) {
 }
 
 func TestGetTopFqdn(t *testing.T) {
-	domain, ok := GetTopFqdn("www.example.com")
+	domain, ok := GetTopFqdn("example.com")
+	assert.True(t, ok, "Output should be true")
+	assert.Equal(t, "example.com", domain)
+
+	domain, ok = GetTopFqdn("www.example.com")
 	assert.True(t, ok, "Output should be true")
 	assert.Equal(t, "example.com", domain)
 

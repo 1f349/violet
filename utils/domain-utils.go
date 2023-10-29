@@ -65,23 +65,17 @@ func GetParentDomain(domain string) (string, bool) {
 //
 // hello.world.example.com => example.com
 func GetTopFqdn(domain string) (string, bool) {
-	var countDot int
-	n := strings.LastIndexFunc(domain, func(r rune) bool {
-		// return true if this is the second '.'
-		// otherwise counts one and continues
-		if r == '.' {
-			if countDot == 1 {
-				return true
-			}
-			countDot++
-		}
-		return false
-	})
+	n := strings.LastIndexByte(domain, '.')
 	// if a valid index isn't found then return false
 	if n == -1 {
 		return "", false
 	}
-	return domain[n+1:], true
+	// if a valid index isn't found then this is the fqdn
+	n2 := strings.LastIndexByte(domain[:n], '.')
+	if n2 == -1 {
+		return domain, true
+	}
+	return domain[n2+1:], true
 }
 
 // SplitHostPath extracts the host/path from the input
