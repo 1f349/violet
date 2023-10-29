@@ -3,7 +3,6 @@ package router
 import (
 	"database/sql"
 	_ "embed"
-	"fmt"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
 	"github.com/MrMelon54/rescheduler"
@@ -168,8 +167,6 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 			}
 		}
 	}
-
-	fmt.Println(len(s))
 
 	return s, nil
 }
