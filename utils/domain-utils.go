@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"golang.org/x/net/publicsuffix"
 	"strconv"
 	"strings"
 )
@@ -65,17 +66,8 @@ func GetParentDomain(domain string) (string, bool) {
 //
 // hello.world.example.com => example.com
 func GetTopFqdn(domain string) (string, bool) {
-	n := strings.LastIndexByte(domain, '.')
-	// if a valid index isn't found then return false
-	if n == -1 {
-		return "", false
-	}
-	// if a valid index isn't found then this is the fqdn
-	n2 := strings.LastIndexByte(domain[:n], '.')
-	if n2 == -1 {
-		return domain, true
-	}
-	return domain[n2+1:], true
+	out, err := publicsuffix.EffectiveTLDPlusOne(domain)
+	return out, err == nil
 }
 
 // SplitHostPath extracts the host/path from the input
