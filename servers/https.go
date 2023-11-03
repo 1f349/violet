@@ -26,8 +26,11 @@ func NewHttpsServer(conf *conf.Conf) *http.Server {
 	rateLimiter := setupRateLimiter(conf.RateLimit, favMiddleware)
 
 	return &http.Server{
-		Addr:    conf.HttpsListen,
-		Handler: rateLimiter,
+		Addr: conf.HttpsListen,
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+			rateLimiter.ServeHTTP(rw, req)
+		}),
 		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			// error out on invalid domains
 			if !conf.Domains.IsValid(info.ServerName) {
