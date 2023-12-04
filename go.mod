@@ -1,6 +1,6 @@
 module github.com/1f349/violet
 
-go 1.20
+go 1.21.4
 
 require (
 	github.com/1f349/mjwt v0.2.1
