@@ -32,6 +32,7 @@ func NewHttpsServer(conf *conf.Conf) *http.Server {
 			rateLimiter.ServeHTTP(rw, req)
 		}),
 		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS13,
 			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// error out on invalid domains
 				if !conf.Domains.IsValid(info.ServerName) {
