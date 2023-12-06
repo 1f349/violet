@@ -31,21 +31,23 @@ func NewHttpsServer(conf *conf.Conf) *http.Server {
 			rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 			rateLimiter.ServeHTTP(rw, req)
 		}),
-		TLSConfig: &tls.Config{GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			// error out on invalid domains
-			if !conf.Domains.IsValid(info.ServerName) {
-				return nil, fmt.Errorf("invalid hostname used: '%s'", info.ServerName)
-			}
+		TLSConfig: &tls.Config{
+			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				// error out on invalid domains
+				if !conf.Domains.IsValid(info.ServerName) {
+					return nil, fmt.Errorf("invalid hostname used: '%s'", info.ServerName)
+				}
 
-			// find a certificate
-			cert := conf.Certs.GetCertForDomain(info.ServerName)
-			if cert == nil {
-				return nil, fmt.Errorf("failed to find certificate for: '%s'", info.ServerName)
-			}
+				// find a certificate
+				cert := conf.Certs.GetCertForDomain(info.ServerName)
+				if cert == nil {
+					return nil, fmt.Errorf("failed to find certificate for: '%s'", info.ServerName)
+				}
 
-			// time to return
-			return cert, nil
-		}},
+				// time to return
+				return cert, nil
+			},
+		},
 		ReadTimeout:       150 * time.Second,
 		ReadHeaderTimeout: 150 * time.Second,
 		WriteTimeout:      150 * time.Second,
