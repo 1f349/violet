@@ -27,6 +27,8 @@ type Certs struct {
 	ca   *certgen.CertGen
 	sn   atomic.Int64
 	r    *rescheduler.Rescheduler
+	t    *time.Ticker
+	ts   chan struct{}
 }
 
 // New creates a new cert list
@@ -37,15 +39,26 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 		ss:   selfCert,
 		s:    &sync.RWMutex{},
 		m:    make(map[string]*tls.Certificate),
+		ts:   make(chan struct{}, 1),
 	}
 
-	// the rescheduler isn't even used in self cert mode so why initialise it
 	if !selfCert {
+		// the rescheduler isn't even used in self cert mode so why initialise it
 		c.r = rescheduler.NewRescheduler(c.threadCompile)
-	}
 
-	// in self-signed mode generate a CA certificate to sign other certificates
-	if c.ss {
+		c.t = time.NewTicker(2 * time.Hour)
+		go func() {
+			for {
+				select {
+				case <-c.t.C:
+					c.Compile()
+				case <-c.ts:
+					return
+				}
+			}
+		}()
+	} else {
+		// in self-signed mode generate a CA certificate to sign other certificates
 		ca, err := certgen.MakeCaTls(4096, pkix.Name{
 			Country:            []string{"GB"},
 			Organization:       []string{"Violet"},
@@ -116,6 +129,13 @@ func (c *Certs) Compile() {
 		return
 	}
 	c.r.Run()
+}
+
+func (c *Certs) Stop() {
+	if c.t != nil {
+		c.t.Stop()
+	}
+	close(c.ts)
 }
 
 func (c *Certs) threadCompile() {

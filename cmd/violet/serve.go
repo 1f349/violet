@@ -183,6 +183,9 @@ func normalLoad(startUp startUpConfig, wd string) {
 	exit_reload.ExitReload("Violet", func() {
 		allCompilables.Compile()
 	}, func() {
+		// stop updating certificates
+		allowedCerts.Stop()
+
 		// close websockets first
 		ws.Shutdown()
 
