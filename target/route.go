@@ -20,8 +20,9 @@ import (
 
 // serveApiCors outputs the cors headers to make APIs work.
 var serveApiCors = cors.New(cors.Options{
-	AllowedOrigins: []string{"*"}, // allow all origins for api requests
-	AllowedHeaders: []string{"Content-Type", "Authorization"},
+	// allow all origins for api requests
+	AllowOriginFunc: func(origin string) bool { return true },
+	AllowedHeaders:  []string{"Content-Type", "Authorization"},
 	AllowedMethods: []string{
 		http.MethodGet,
 		http.MethodHead,
