@@ -17,7 +17,7 @@ func TestNewApiServer_Compile(t *testing.T) {
 		Signer:  fake.SnakeOilProv,
 	}
 	f := &fake.Compilable{}
-	srv := NewApiServer(apiConf, utils.MultiCompilable{f})
+	srv := NewApiServer(apiConf, utils.MultiCompilable{f}, nil)
 
 	req, err := http.NewRequest(http.MethodPost, "https://example.com/compile", nil)
 	assert.NoError(t, err)
@@ -43,7 +43,7 @@ func TestNewApiServer_AcmeChallenge_Put(t *testing.T) {
 		Acme:    utils.NewAcmeChallenge(),
 		Signer:  fake.SnakeOilProv,
 	}
-	srv := NewApiServer(apiConf, utils.MultiCompilable{})
+	srv := NewApiServer(apiConf, utils.MultiCompilable{}, nil)
 	acmeKey := fake.GenSnakeOilKey("violet:acme-challenge")
 
 	// Valid domain
@@ -87,7 +87,7 @@ func TestNewApiServer_AcmeChallenge_Delete(t *testing.T) {
 		Acme:    utils.NewAcmeChallenge(),
 		Signer:  fake.SnakeOilProv,
 	}
-	srv := NewApiServer(apiConf, utils.MultiCompilable{})
+	srv := NewApiServer(apiConf, utils.MultiCompilable{}, nil)
 	acmeKey := fake.GenSnakeOilKey("violet:acme-challenge")
 
 	// Valid domain

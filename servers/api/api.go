@@ -7,6 +7,8 @@ import (
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"time"
 )
@@ -15,11 +17,14 @@ import (
 // endpoints for the software
 //
 // `/compile` - reloads all domains, routes and redirects
-func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable) *http.Server {
+func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry *prometheus.Registry) *http.Server {
 	r := httprouter.New()
 
 	r.GET("/", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		http.Error(rw, "Violet API Endpoint", http.StatusOK)
+	})
+	r.GET("/metrics", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(rw, req)
 	})
 
 	// Endpoint for compile action

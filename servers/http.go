@@ -3,8 +3,10 @@ package servers
 import (
 	"fmt"
 	"github.com/1f349/violet/servers/conf"
+	"github.com/1f349/violet/servers/metrics"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"net/url"
 	"time"
@@ -15,7 +17,7 @@ import (
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
 // acme challenges, this is used for Let's Encrypt HTTP verification.
-func NewHttpServer(conf *conf.Conf) *http.Server {
+func NewHttpServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server {
 	r := httprouter.New()
 	var secureExtend string
 	_, httpsPort, ok := utils.SplitDomainPort(conf.HttpsListen, 443)
@@ -61,10 +63,12 @@ func NewHttpServer(conf *conf.Conf) *http.Server {
 		utils.FastRedirect(rw, req, u.String(), http.StatusPermanentRedirect)
 	})
 
+	metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-http-insecure", r)
+
 	// Create and run http server
 	return &http.Server{
 		Addr:              conf.HttpListen,
-		Handler:           r,
+		Handler:           metricsMiddleware,
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Minute,
 		WriteTimeout:      time.Minute,

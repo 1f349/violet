@@ -19,13 +19,13 @@ import (
 	"github.com/1f349/violet/utils"
 	"github.com/MrMelon54/exit-reload"
 	"github.com/google/subcommands"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"io/fs"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"runtime/pprof"
 )
 
 type serveCmd struct {
@@ -37,27 +37,15 @@ func (s *serveCmd) Name() string     { return "serve" }
 func (s *serveCmd) Synopsis() string { return "Serve reverse proxy server" }
 func (s *serveCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.configPath, "conf", "", "/path/to/config.json : path to the config file")
-	f.StringVar(&s.cpuprofile, "cpuprofile", "", "write cpu profile to file")
 }
 func (s *serveCmd) Usage() string {
-	return `serve [-conf <config file>] [-cpuprofile <profile file>]
+	return `serve [-conf <config file>]
   Serve reverse proxy server using information from config file
 `
 }
 
 func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
 	log.Println("[Violet] Starting...")
-
-	// Enable cpu profiling
-	if s.cpuprofile != "" {
-		f, err := os.Create(s.cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("[Violet] CPU profiling enabled, writing to '%s'\n", s.cpuprofile)
-		_ = pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
 
 	if s.configPath == "" {
 		log.Println("[Violet] Error: config flag is missing")
@@ -127,6 +115,13 @@ func normalLoad(startUp startUpConfig, wd string) {
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
 	keyDir := os.DirFS(filepath.Join(wd, "keys"))
 
+	// setup registry for metrics
+	promRegistry := prometheus.NewRegistry()
+	promRegistry.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
 	ws := websocket.NewServer()
 	allowedDomains := domains.New(db)                              // load allowed domains
 	acmeChallenges := utils.NewAcmeChallenge()                     // load acme challenge store
@@ -158,27 +153,23 @@ func normalLoad(startUp startUpConfig, wd string) {
 
 	var srvApi, srvHttp, srvHttps *http.Server
 	if srvConf.ApiListen != "" {
-		srvApi = api.NewApiServer(srvConf, allCompilables)
+		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry)
 		srvApi.SetKeepAlivesEnabled(false)
 		log.Printf("[API] Starting API server on: '%s'\n", srvApi.Addr)
 		go utils.RunBackgroundHttp("API", srvApi)
 	}
 	if srvConf.HttpListen != "" {
-		srvHttp = servers.NewHttpServer(srvConf)
+		srvHttp = servers.NewHttpServer(srvConf, promRegistry)
 		srvHttp.SetKeepAlivesEnabled(false)
 		log.Printf("[HTTP] Starting HTTP server on: '%s'\n", srvHttp.Addr)
 		go utils.RunBackgroundHttp("HTTP", srvHttp)
 	}
 	if srvConf.HttpsListen != "" {
-		srvHttps = servers.NewHttpsServer(srvConf)
+		srvHttps = servers.NewHttpsServer(srvConf, promRegistry)
 		srvHttps.SetKeepAlivesEnabled(false)
 		log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", srvHttps.Addr)
 		go utils.RunBackgroundHttps("HTTPS", srvHttps)
 	}
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6600", nil))
-	}()
 
 	exit_reload.ExitReload("Violet", func() {
 		allCompilables.Compile()

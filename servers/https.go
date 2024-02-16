@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/1f349/violet/favicons"
 	"github.com/1f349/violet/servers/conf"
+	"github.com/1f349/violet/servers/metrics"
 	"github.com/1f349/violet/utils"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
 	"log"
@@ -17,31 +19,33 @@ import (
 
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
-func NewHttpsServer(conf *conf.Conf) *http.Server {
+func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server {
 	r := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("[Debug] Request: %s - '%s' - '%s' - '%s' - len: %d - thread: %d\n", req.Method, req.URL.String(), req.RemoteAddr, req.Host, req.ContentLength, runtime.NumGoroutine())
 		conf.Router.ServeHTTP(rw, req)
 	})
 	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
 	rateLimiter := setupRateLimiter(conf.RateLimit, favMiddleware)
+	metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-https", rateLimiter)
+	hsts := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		metricsMiddleware.ServeHTTP(rw, req)
+	})
 
 	return &http.Server{
-		Addr: conf.HttpsListen,
-		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-			rateLimiter.ServeHTTP(rw, req)
-		}),
+		Addr:    conf.HttpsListen,
+		Handler: hsts,
 		TLSConfig: &tls.Config{
 			// Suggested by https://ssl-config.mozilla.org/#server=go&version=1.21.5&config=intermediate
 			MinVersion: tls.VersionTLS12,
-		        CipherSuites: []uint16{
-		            tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		            tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		            tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		            tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		            tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-		            tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-		        },
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			},
 			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// error out on invalid domains
 				if !conf.Domains.IsValid(info.ServerName) {

@@ -18,7 +18,7 @@ func TestNewHttpServer_AcmeChallenge(t *testing.T) {
 		Acme:    utils.NewAcmeChallenge(),
 		Signer:  fake.SnakeOilProv,
 	}
-	srv := NewHttpServer(httpConf)
+	srv := NewHttpServer(httpConf, nil)
 	httpConf.Acme.Put("example.com", "456", "456def")
 
 	req, err := http.NewRequest(http.MethodGet, "https://example.com/.well-known/acme-challenge/456", nil)
