@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -46,7 +47,7 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "Tracks the number of HTTP requests.",
-		}, []string{"method", "code"},
+		}, []string{"method", "code", "host"},
 	)
 	requestDuration := promauto.With(reg).NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -54,22 +55,27 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 			Help:    "Tracks the latencies for HTTP requests.",
 			Buckets: m.buckets,
 		},
-		[]string{"method", "code"},
+		[]string{"method", "code", "host"},
 	)
 	requestSize := promauto.With(reg).NewSummaryVec(
 		prometheus.SummaryOpts{
 			Name: "http_request_size_bytes",
 			Help: "Tracks the size of HTTP requests.",
 		},
-		[]string{"method", "code"},
+		[]string{"method", "code", "host"},
 	)
 	responseSize := promauto.With(reg).NewSummaryVec(
 		prometheus.SummaryOpts{
 			Name: "http_response_size_bytes",
 			Help: "Tracks the size of HTTP responses.",
 		},
-		[]string{"method", "code"},
+		[]string{"method", "code", "host"},
 	)
+
+	hostCtxGetter := promhttp.WithLabelFromCtx("host", func(ctx context.Context) string {
+		s, _ := ctx.Value(hostCtxKey(0)).(string)
+		return s
+	})
 
 	// Wraps the provided http.Handler to observe the request result with the provided metrics.
 	base := promhttp.InstrumentHandlerCounter(
@@ -81,9 +87,13 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 				promhttp.InstrumentHandlerResponseSize(
 					responseSize,
 					handler,
+					hostCtxGetter,
 				),
+				hostCtxGetter,
 			),
+			hostCtxGetter,
 		),
+		hostCtxGetter,
 	)
 
 	return base.ServeHTTP
@@ -99,4 +109,10 @@ func New(registry prometheus.Registerer, buckets []float64) Middleware {
 		buckets:  buckets,
 		registry: registry,
 	}
+}
+
+type hostCtxKey uint8
+
+func AddHostCtx(req *http.Request) *http.Request {
+	return req.WithContext(context.WithValue(req.Context(), hostCtxKey(0), req.Host))
 }
