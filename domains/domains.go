@@ -1,8 +1,9 @@
 package domains
 
 import (
-	"database/sql"
+	"context"
 	_ "embed"
+	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/utils"
 	"github.com/MrMelon54/rescheduler"
 	"log"
@@ -10,32 +11,22 @@ import (
 	"sync"
 )
 
-//go:embed create-table-domains.sql
-var createTableDomains string
-
 // Domains is the domain list and management system.
 type Domains struct {
-	db *sql.DB
+	db *database.Queries
 	s  *sync.RWMutex
 	m  map[string]struct{}
 	r  *rescheduler.Rescheduler
 }
 
 // New creates a new domain list
-func New(db *sql.DB) *Domains {
+func New(db *database.Queries) *Domains {
 	a := &Domains{
 		db: db,
 		s:  &sync.RWMutex{},
 		m:  make(map[string]struct{}),
 	}
 	a.r = rescheduler.NewRescheduler(a.threadCompile)
-
-	// init domains table
-	_, err := a.db.Exec(createTableDomains)
-	if err != nil {
-		log.Printf("[WARN] Failed to generate 'domains' table\n")
-		return nil
-	}
 	return a
 }
 
@@ -93,30 +84,26 @@ func (d *Domains) internalCompile(m map[string]struct{}) error {
 	log.Println("[Domains] Updating domains from database")
 
 	// sql or something?
-	rows, err := d.db.Query(`select domain from domains where active = 1`)
+	rows, err := d.db.GetActiveDomains(context.Background())
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	// loop through rows and scan the allowed domain names
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return err
-		}
-		m[name] = struct{}{}
+	for _, i := range rows {
+		m[i] = struct{}{}
 	}
 
 	// check for errors
-	return rows.Err()
+	return nil
 }
 
 func (d *Domains) Put(domain string, active bool) {
 	d.s.Lock()
 	defer d.s.Unlock()
-	_, err := d.db.Exec("INSERT OR REPLACE INTO domains (domain, active) VALUES (?, ?)", domain, active)
+	err := d.db.AddDomain(context.Background(), database.AddDomainParams{
+		Domain: domain,
+		Active: active,
+	})
 	if err != nil {
 		log.Printf("[Violet] Database error: %s\n", err)
 	}
@@ -125,7 +112,7 @@ func (d *Domains) Put(domain string, active bool) {
 func (d *Domains) Delete(domain string) {
 	d.s.Lock()
 	defer d.s.Unlock()
-	_, err := d.db.Exec("INSERT OR REPLACE INTO domains (domain, active) VALUES (?, ?)", domain, false)
+	err := d.db.DeleteDomain(context.Background(), domain)
 	if err != nil {
 		log.Printf("[Violet] Database error: %s\n", err)
 	}

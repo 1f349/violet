@@ -1,7 +1,7 @@
 package servers
 
 import (
-	"database/sql"
+	"github.com/1f349/violet"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
@@ -25,7 +25,7 @@ func (f *fakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 }
 
 func TestNewHttpsServer_RateLimit(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
+	db, err := violet.InitDB("file:TestNewHttpsServer_RateLimit?mode=memory&cache=shared")
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}

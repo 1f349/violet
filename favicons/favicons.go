@@ -1,10 +1,11 @@
 package favicons
 
 import (
-	"database/sql"
+	"context"
 	_ "embed"
 	"errors"
 	"fmt"
+	"github.com/1f349/violet/database"
 	"github.com/MrMelon54/rescheduler"
 	"golang.org/x/sync/errgroup"
 	"log"
@@ -13,12 +14,9 @@ import (
 
 var ErrFaviconNotFound = errors.New("favicon not found")
 
-//go:embed create-table-favicons.sql
-var createTableFavicons string
-
 // Favicons is a dynamic favicon generator which supports overwriting favicons
 type Favicons struct {
-	db         *sql.DB
+	db         *database.Queries
 	cmd        string
 	cLock      *sync.RWMutex
 	faviconMap map[string]*FaviconList
@@ -26,7 +24,7 @@ type Favicons struct {
 }
 
 // New creates a new dynamic favicon generator
-func New(db *sql.DB, inkscapeCmd string) *Favicons {
+func New(db *database.Queries, inkscapeCmd string) *Favicons {
 	f := &Favicons{
 		db:         db,
 		cmd:        inkscapeCmd,
@@ -34,13 +32,6 @@ func New(db *sql.DB, inkscapeCmd string) *Favicons {
 		faviconMap: make(map[string]*FaviconList),
 	}
 	f.r = rescheduler.NewRescheduler(f.threadCompile)
-
-	// init favicons table
-	_, err := f.db.Exec(createTableFavicons)
-	if err != nil {
-		log.Printf("[WARN] Failed to generate 'favicons' table\n")
-		return nil
-	}
 
 	// run compile to get the initial data
 	f.Compile()
@@ -89,29 +80,23 @@ func (f *Favicons) threadCompile() {
 // favicons.
 func (f *Favicons) internalCompile(m map[string]*FaviconList) error {
 	// query all rows in database
-	query, err := f.db.Query(`select host, svg, png, ico from favicons`)
+	rows, err := f.db.GetFavicons(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to prepare query: %w", err)
+		return fmt.Errorf("failed to prepare rows: %w", err)
 	}
 
 	// loop over rows and scan in data using error group to catch errors
 	var g errgroup.Group
-	for query.Next() {
-		var host, rawSvg, rawPng, rawIco string
-		err := query.Scan(&host, &rawSvg, &rawPng, &rawIco)
-		if err != nil {
-			return fmt.Errorf("failed to scan row: %w", err)
-		}
-
+	for _, row := range rows {
 		// create favicon list for this row
 		l := &FaviconList{
-			Ico: CreateFaviconImage(rawIco),
-			Png: CreateFaviconImage(rawPng),
-			Svg: CreateFaviconImage(rawSvg),
+			Ico: CreateFaviconImage(row.Ico),
+			Png: CreateFaviconImage(row.Png),
+			Svg: CreateFaviconImage(row.Svg),
 		}
 
 		// save the favicon list to the map
-		m[host] = l
+		m[row.Host] = l
 
 		// run the pre-process in a separate goroutine
 		g.Go(func() error {

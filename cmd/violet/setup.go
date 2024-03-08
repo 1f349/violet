@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/1f349/violet"
 	"github.com/1f349/violet/domains"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
@@ -147,7 +147,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	}
 
 	// open sqlite database
-	db, err := sql.Open("sqlite3", databaseFile)
+	db, err := violet.InitDB(databaseFile)
 	if err != nil {
 		log.Fatalf("[Violet] Failed to open database '%s'...", databaseFile)
 	}

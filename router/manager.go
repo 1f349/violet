@@ -1,8 +1,9 @@
 package router
 
 import (
-	"database/sql"
+	"context"
 	_ "embed"
+	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
 	"github.com/MrMelon54/rescheduler"
@@ -15,21 +16,16 @@ import (
 // Manager is a database and mutex wrap around router allowing it to be
 // dynamically regenerated after updating the database of routes.
 type Manager struct {
-	db *sql.DB
+	db *database.Queries
 	s  *sync.RWMutex
 	r  *Router
 	p  *proxy.HybridTransport
 	z  *rescheduler.Rescheduler
 }
 
-var (
-	//go:embed create-tables.sql
-	createTables string
-)
-
 // NewManager create a new manager, initialises the routes and redirects tables
 // in the database and runs a first time compile.
-func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
+func NewManager(db *database.Queries, proxy *proxy.HybridTransport) *Manager {
 	m := &Manager{
 		db: db,
 		s:  &sync.RWMutex{},
@@ -37,13 +33,6 @@ func NewManager(db *sql.DB, proxy *proxy.HybridTransport) *Manager {
 		p:  proxy,
 	}
 	m.z = rescheduler.NewRescheduler(m.threadCompile)
-
-	// init routes table
-	_, err := m.db.Exec(createTables)
-	if err != nil {
-		log.Printf("[WARN] Failed to generate tables\n")
-		return nil
-	}
 	return m
 }
 
@@ -81,64 +70,36 @@ func (m *Manager) internalCompile(router *Router) error {
 	log.Println("[Manager] Updating routes from database")
 
 	// sql or something?
-	rows, err := m.db.Query(`SELECT source, destination, flags FROM routes WHERE active = 1`)
+	routeRows, err := m.db.GetActiveRoutes(context.Background())
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	// loop through rows and scan the options
-	for rows.Next() {
-		var (
-			src, dst string
-			flags    target.Flags
-		)
-		err := rows.Scan(&src, &dst, &flags)
-		if err != nil {
-			return err
-		}
-
+	for _, row := range routeRows {
 		router.AddRoute(target.Route{
-			Src:   src,
-			Dst:   dst,
-			Flags: flags.NormaliseRouteFlags(),
+			Src:   row.Source,
+			Dst:   row.Destination,
+			Flags: row.Flags.NormaliseRouteFlags(),
 		})
-	}
-
-	// check for errors
-	if err := rows.Err(); err != nil {
-		return err
 	}
 
 	// sql or something?
-	rows, err = m.db.Query(`SELECT source,destination,flags,code FROM redirects WHERE active = 1`)
+	redirectsRows, err := m.db.GetActiveRedirects(context.Background())
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
-	// loop through rows and scan the options
-	for rows.Next() {
-		var (
-			src, dst string
-			flags    target.Flags
-			code     int
-		)
-		err := rows.Scan(&src, &dst, &flags, &code)
-		if err != nil {
-			return err
-		}
-
+	for _, row := range redirectsRows {
 		router.AddRedirect(target.Redirect{
-			Src:   src,
-			Dst:   dst,
-			Flags: flags.NormaliseRedirectFlags(),
-			Code:  code,
+			Src:   row.Source,
+			Dst:   row.Destination,
+			Flags: row.Flags.NormaliseRedirectFlags(),
+			Code:  row.Code,
 		})
 	}
 
 	// check for errors
-	return rows.Err()
+	return nil
 }
 
 func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error) {
@@ -148,15 +109,20 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 
 	s := make([]target.RouteWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, description, flags, active FROM routes`)
+	rows, err := m.db.GetAllRoutes(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	for query.Next() {
-		var a target.RouteWithActive
-		if err := query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Active); err != nil {
-			return nil, err
+	for _, row := range rows {
+		a := target.RouteWithActive{
+			Route: target.Route{
+				Src:   row.Source,
+				Dst:   row.Destination,
+				Desc:  row.Description,
+				Flags: row.Flags,
+			},
+			Active: row.Active,
 		}
 
 		for _, i := range hosts {
@@ -172,13 +138,17 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 }
 
 func (m *Manager) InsertRoute(route target.RouteWithActive) error {
-	_, err := m.db.Exec(`INSERT INTO routes (source, destination, description, flags, active) VALUES (?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, active = excluded.active`, route.Src, route.Dst, route.Desc, route.Flags, route.Active)
-	return err
+	return m.db.AddRoute(context.Background(), database.AddRouteParams{
+		Source:      route.Src,
+		Destination: route.Dst,
+		Description: route.Desc,
+		Flags:       route.Flags,
+		Active:      route.Active,
+	})
 }
 
 func (m *Manager) DeleteRoute(source string) error {
-	_, err := m.db.Exec(`DELETE FROM routes WHERE source = ?`, source)
-	return err
+	return m.db.RemoveRoute(context.Background(), source)
 }
 
 func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, error) {
@@ -188,15 +158,21 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 
 	s := make([]target.RedirectWithActive, 0)
 
-	query, err := m.db.Query(`SELECT source, destination, description, flags, code, active FROM redirects`)
+	rows, err := m.db.GetAllRedirects(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	for query.Next() {
-		var a target.RedirectWithActive
-		if err := query.Scan(&a.Src, &a.Dst, &a.Desc, &a.Flags, &a.Code, &a.Active); err != nil {
-			return nil, err
+	for _, row := range rows {
+		a := target.RedirectWithActive{
+			Redirect: target.Redirect{
+				Src:   row.Source,
+				Dst:   row.Destination,
+				Desc:  row.Description,
+				Flags: row.Flags,
+				Code:  row.Code,
+			},
+			Active: row.Active,
 		}
 
 		for _, i := range hosts {
@@ -212,13 +188,18 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 }
 
 func (m *Manager) InsertRedirect(redirect target.RedirectWithActive) error {
-	_, err := m.db.Exec(`INSERT INTO redirects (source, destination, description, flags, code, active) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(source) DO UPDATE SET destination = excluded.destination, description = excluded.description, flags = excluded.flags, code = excluded.code, active = excluded.active`, redirect.Src, redirect.Dst, redirect.Desc, redirect.Flags, redirect.Code, redirect.Active)
-	return err
+	return m.db.AddRedirect(context.Background(), database.AddRedirectParams{
+		Source:      redirect.Src,
+		Destination: redirect.Dst,
+		Description: redirect.Desc,
+		Flags:       redirect.Flags,
+		Code:        redirect.Code,
+		Active:      redirect.Active,
+	})
 }
 
 func (m *Manager) DeleteRedirect(source string) error {
-	_, err := m.db.Exec(`DELETE FROM redirects WHERE source = ?`, source)
-	return err
+	return m.db.RemoveRedirect(context.Background(), source)
 }
 
 // GenerateHostSearch this should help improve performance

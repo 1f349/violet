@@ -25,14 +25,20 @@ func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server
 		conf.Router.ServeHTTP(rw, req)
 	})
 	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
-	rateLimiter := setupRateLimiter(conf.RateLimit, favMiddleware)
-	metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-https", rateLimiter)
+
 	metricsMeta := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		metricsMiddleware.ServeHTTP(rw, metrics.AddHostCtx(req))
+		r.ServeHTTP(rw, req)
 	})
+	if registry != nil {
+		metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-https", favMiddleware)
+		metricsMeta = func(rw http.ResponseWriter, req *http.Request) {
+			metricsMiddleware.ServeHTTP(rw, metrics.AddHostCtx(req))
+		}
+	}
+	rateLimiter := setupRateLimiter(conf.RateLimit, metricsMeta)
 	hsts := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
-		metricsMeta.ServeHTTP(rw, req)
+		rateLimiter.ServeHTTP(rw, req)
 	})
 
 	return &http.Server{

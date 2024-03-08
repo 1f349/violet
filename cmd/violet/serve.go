@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"flag"
 	"github.com/1f349/mjwt"
+	"github.com/1f349/violet"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/domains"
 	errorPages "github.com/1f349/violet/error-pages"
@@ -107,7 +107,7 @@ func normalLoad(startUp startUpConfig, wd string) {
 	}
 
 	// open sqlite database
-	db, err := sql.Open("sqlite3", filepath.Join(wd, "violet.db.sqlite"))
+	db, err := violet.InitDB(filepath.Join(wd, "violet.db.sqlite"))
 	if err != nil {
 		log.Fatal("[Violet] Failed to open database")
 	}

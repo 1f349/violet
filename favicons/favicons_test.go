@@ -2,8 +2,11 @@ package favicons
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	_ "embed"
+	"github.com/1f349/violet"
+	"github.com/1f349/violet/database"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"image/png"
@@ -22,11 +25,17 @@ var (
 func TestFaviconsNew(t *testing.T) {
 	getFaviconViaRequest = func(_ string) ([]byte, error) { return exampleSvg, nil }
 
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
+	db, err := violet.InitDB("file:TestFaviconsNew?mode=memory&cache=shared")
 	assert.NoError(t, err)
 
 	favicons := New(db, "inkscape")
-	_, err = db.Exec("insert into favicons (host, svg, png, ico) values (?, ?, ?, ?)", "example.com", "https://example.com/assets/logo.svg", "", "")
+	err = db.UpdateFaviconCache(context.Background(), database.UpdateFaviconCacheParams{
+		Host: "example.com",
+		Svg: sql.NullString{
+			String: "https://example.com/assets/logo.svg",
+			Valid:  true,
+		},
+	})
 	assert.NoError(t, err)
 	favicons.cLock.Lock()
 	assert.NoError(t, favicons.internalCompile(favicons.faviconMap))

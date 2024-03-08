@@ -35,7 +35,7 @@ func TestRedirect_ServeHTTP(t *testing.T) {
 		res := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "https://www.example.com/hello/world", nil)
 		i.ServeHTTP(res, req)
-		assert.Equal(t, i.Code, res.Code)
+		assert.Equal(t, i.Code, int64(res.Code))
 		assert.Equal(t, i.target, res.Header().Get("Location"))
 	}
 }

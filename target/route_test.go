@@ -90,7 +90,7 @@ func TestRoute_ServeHTTP_Cors(t *testing.T) {
 	assert.Equal(t, http.MethodOptions, pt.req.Method)
 	assert.Equal(t, "http://1.1.1.1:8080/hello/test", pt.req.URL.String())
 	assert.Equal(t, "Origin", res.Header().Get("Vary"))
-	assert.Equal(t, "*", res.Header().Get("Access-Control-Allow-Origin"))
+	assert.Equal(t, "https://test.example.com", res.Header().Get("Access-Control-Allow-Origin"))
 	assert.Equal(t, "true", res.Header().Get("Access-Control-Allow-Credentials"))
 	assert.Equal(t, "Origin", res.Header().Get("Vary"))
 }

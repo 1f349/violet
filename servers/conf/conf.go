@@ -1,8 +1,8 @@
 package conf
 
 import (
-	"database/sql"
 	"github.com/1f349/mjwt"
+	"github.com/1f349/violet/database"
 	errorPages "github.com/1f349/violet/error-pages"
 	"github.com/1f349/violet/favicons"
 	"github.com/1f349/violet/router"
@@ -15,7 +15,7 @@ type Conf struct {
 	HttpListen  string // http server listen address
 	HttpsListen string // https server listen address
 	RateLimit   uint64 // rate limit per minute
-	DB          *sql.DB
+	DB          *database.Queries
 	Domains     utils.DomainProvider
 	Acme        utils.AcmeChallengeProvider
 	Certs       utils.CertProvider

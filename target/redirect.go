@@ -16,7 +16,7 @@ type Redirect struct {
 	Dst   string `json:"dst"`   // redirect destination
 	Desc  string `json:"desc"`  // description for admin panel use
 	Flags Flags  `json:"flags"` // extra flags
-	Code  int    `json:"code"`  // status code used to redirect
+	Code  int64  `json:"code"`  // status code used to redirect
 }
 
 type RedirectWithActive struct {
@@ -78,7 +78,7 @@ func (r Redirect) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// use fast redirect for speed
-	utils.FastRedirect(rw, req, u.String(), code)
+	utils.FastRedirect(rw, req, u.String(), int(code))
 }
 
 // String outputs a debug string for the redirect.

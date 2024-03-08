@@ -63,7 +63,12 @@ func NewHttpServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server 
 		utils.FastRedirect(rw, req, u.String(), http.StatusPermanentRedirect)
 	})
 
-	metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-http-insecure", r)
+	metricsMiddleware := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		r.ServeHTTP(rw, req)
+	})
+	if registry != nil {
+		metricsMiddleware = metrics.New(registry, nil).WrapHandler("violet-http-insecure", r)
+	}
 
 	// Create and run http server
 	return &http.Server{

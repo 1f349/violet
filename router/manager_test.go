@@ -1,7 +1,9 @@
 package router
 
 import (
-	"database/sql"
+	"context"
+	"github.com/1f349/violet"
+	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/target"
@@ -22,7 +24,7 @@ func (f *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestNewManager(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
+	db, err := violet.InitDB("file:TestNewManager?mode=memory&cache=shared")
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}
@@ -39,7 +41,13 @@ func TestNewManager(t *testing.T) {
 	assert.Equal(t, http.StatusTeapot, res.StatusCode)
 	assert.Nil(t, ft.req)
 
-	_, err = db.Exec(`INSERT INTO routes (source, destination, flags, active) VALUES (?,?,?,1)`, "*.example.com", "127.0.0.1:8080", target.FlagAbs|target.FlagForwardHost|target.FlagForwardAddr)
+	err = db.AddRoute(context.Background(), database.AddRouteParams{
+		Source:      "*.example.com",
+		Destination: "127.0.0.1:8080",
+		Description: "",
+		Flags:       target.FlagAbs | target.FlagForwardHost | target.FlagForwardAddr,
+		Active:      true,
+	})
 	assert.NoError(t, err)
 
 	assert.NoError(t, m.internalCompile(m.r))
@@ -52,10 +60,8 @@ func TestNewManager(t *testing.T) {
 }
 
 func TestManager_GetAllRoutes(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file:GetAllRoutes?mode=memory&cache=shared")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db, err := violet.InitDB("file:TestManager_GetAllRoutes?mode=memory&cache=shared")
+	assert.NoError(t, err)
 	m := NewManager(db, nil)
 	a := []error{
 		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.com"}, Active: true}),
@@ -85,10 +91,8 @@ func TestManager_GetAllRoutes(t *testing.T) {
 }
 
 func TestManager_GetAllRedirects(t *testing.T) {
-	db, err := sql.Open("sqlite3", "file:GetAllRedirects?mode=memory&cache=shared")
-	if err != nil {
-		t.Fatal(err)
-	}
+	db, err := violet.InitDB("file:TestManager_GetAllRedirects?mode=memory&cache=shared")
+	assert.NoError(t, err)
 	m := NewManager(db, nil)
 	a := []error{
 		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.com"}, Active: true}),
