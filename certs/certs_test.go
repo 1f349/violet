@@ -3,7 +3,7 @@ package certs
 import (
 	"crypto/x509/pkix"
 	"fmt"
-	"github.com/MrMelon54/certgen"
+	"github.com/mrmelon54/certgen"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"

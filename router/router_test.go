@@ -5,7 +5,7 @@ import (
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/target"
-	"github.com/MrMelon54/trie"
+	"github.com/mrmelon54/trie"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"

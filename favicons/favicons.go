@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/1f349/violet/database"
-	"github.com/MrMelon54/rescheduler"
+	"github.com/mrmelon54/rescheduler"
 	"golang.org/x/sync/errgroup"
 	"log"
 	"sync"

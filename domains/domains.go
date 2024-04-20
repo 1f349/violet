@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/utils"
-	"github.com/MrMelon54/rescheduler"
+	"github.com/mrmelon54/rescheduler"
 	"log"
 	"strings"
 	"sync"

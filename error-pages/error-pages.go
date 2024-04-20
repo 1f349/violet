@@ -2,7 +2,7 @@ package error_pages
 
 import (
 	"fmt"
-	"github.com/MrMelon54/rescheduler"
+	"github.com/mrmelon54/rescheduler"
 	"io/fs"
 	"log"
 	"net/http"

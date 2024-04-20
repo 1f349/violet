@@ -17,7 +17,7 @@ import (
 	"github.com/1f349/violet/servers/api"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
-	"github.com/MrMelon54/exit-reload"
+	"github.com/mrmelon54/exit-reload"
 	"github.com/google/subcommands"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"

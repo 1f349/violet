@@ -5,7 +5,7 @@ import (
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
 	"github.com/1f349/violet/utils"
-	"github.com/MrMelon54/trie"
+	"github.com/mrmelon54/trie"
 	"net/http"
 	"strings"
 )

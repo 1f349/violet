@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/MrMelon54/png2ico"
+	"github.com/mrmelon54/png2ico"
 	"image/png"
 	"io"
 	"net/http"

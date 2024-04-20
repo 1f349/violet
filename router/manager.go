@@ -6,7 +6,7 @@ import (
 	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
-	"github.com/MrMelon54/rescheduler"
+	"github.com/mrmelon54/rescheduler"
 	"log"
 	"net/http"
 	"strings"
