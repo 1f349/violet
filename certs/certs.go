@@ -4,11 +4,11 @@ import (
 	"crypto/tls"
 	"crypto/x509/pkix"
 	"fmt"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/utils"
 	"github.com/mrmelon54/certgen"
 	"github.com/mrmelon54/rescheduler"
 	"io/fs"
-	"log"
 	"math/big"
 	"os"
 	"strings"
@@ -16,6 +16,8 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Certs")
 
 // Certs is the certificate loader and management system.
 type Certs struct {
@@ -69,7 +71,7 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 			return now.AddDate(10, 0, 0)
 		})
 		if err != nil {
-			log.Fatalln("Failed to generate CA cert for self-signed mode:", err)
+			logger.Logger.Fatal("Failed to generate CA cert for self-signed mode", "err", err)
 		}
 		c.ca = ca
 	}
@@ -145,7 +147,7 @@ func (c *Certs) threadCompile() {
 	// compile map and check errors
 	err := c.internalCompile(certMap)
 	if err != nil {
-		log.Printf("[Certs] Compile failed: %s\n", err)
+		Logger.Infof("Compile failed: %s\n", err)
 		return
 	}
 
@@ -168,7 +170,7 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 		return fmt.Errorf("failed to read cert dir: %w", err)
 	}
 
-	log.Printf("[Certs] Compiling lookup table for %d certificates\n", len(files))
+	Logger.Infof("Compiling lookup table for %d certificates\n", len(files))
 
 	// find and parse certs
 	for _, i := range files {

@@ -2,6 +2,7 @@ package target
 
 import (
 	"fmt"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/utils"
 	"github.com/google/uuid"
@@ -9,7 +10,6 @@ import (
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/textproto"
@@ -17,6 +17,8 @@ import (
 	"path"
 	"strings"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Serve Route")
 
 // serveApiCors outputs the cors headers to make APIs work.
 var serveApiCors = cors.New(cors.Options{
@@ -128,7 +130,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// create the internal request
 	req2, err := http.NewRequest(req.Method, u.String(), req.Body)
 	if err != nil {
-		log.Printf("[ServeRoute::ServeHTTP()] Error generating new request: %s\n", err)
+		Logger.Warn("Error generating new request", "err", err)
 		utils.RespondVioletError(rw, http.StatusBadGateway, "error generating new request")
 		return
 	}
@@ -179,7 +181,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		resp, err = r.Proxy.SecureRoundTrip(req2)
 	}
 	if err != nil {
-		log.Printf("[ServeRoute::ServeHTTP()] Error receiving internal round trip response: %s\n", err)
+		Logger.Warn("Error receiving internal round trip response", "err", err)
 		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
 		return
 	}
@@ -191,7 +193,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	if resp.StatusCode == http.StatusLoopDetected {
 		u := uuid.New()
-		log.Printf("[ServeRoute::ServeHTTP()] Loop Detected: %s %s '%s' -> '%s'\n", u, req.Method, req.URL.String(), req2.URL.String())
+		Logger.Warn("Loop Detected", "id", u, "method", req.Method, "url", req.URL, "url2", req2.URL.String())
 		utils.RespondVioletError(rw, http.StatusLoopDetected, "error loop detected: "+u.String())
 		return
 	}

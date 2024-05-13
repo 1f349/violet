@@ -10,6 +10,7 @@ import (
 	"github.com/1f349/violet/domains"
 	errorPages "github.com/1f349/violet/error-pages"
 	"github.com/1f349/violet/favicons"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/router"
@@ -17,12 +18,11 @@ import (
 	"github.com/1f349/violet/servers/api"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
-	"github.com/mrmelon54/exit-reload"
 	"github.com/google/subcommands"
+	"github.com/mrmelon54/exit-reload"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -45,19 +45,19 @@ func (s *serveCmd) Usage() string {
 }
 
 func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	log.Println("[Violet] Starting...")
+	logger.Logger.Info("Starting...")
 
 	if s.configPath == "" {
-		log.Println("[Violet] Error: config flag is missing")
+		logger.Logger.Info("Error: config flag is missing")
 		return subcommands.ExitUsageError
 	}
 
 	openConf, err := os.Open(s.configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Println("[Violet] Error: missing config file")
+			logger.Logger.Info("Error: missing config file")
 		} else {
-			log.Println("[Violet] Error: open config file: ", err)
+			logger.Logger.Info("Error: open config file: ", err)
 		}
 		return subcommands.ExitFailure
 	}
@@ -65,7 +65,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	var config startUpConfig
 	err = json.NewDecoder(openConf).Decode(&config)
 	if err != nil {
-		log.Println("[Violet] Error: invalid config file: ", err)
+		logger.Logger.Info("Error: invalid config file: ", err)
 		return subcommands.ExitFailure
 	}
 
@@ -81,12 +81,12 @@ func normalLoad(startUp startUpConfig, wd string) {
 		// create path to cert dir
 		err := os.MkdirAll(filepath.Join(wd, "certs"), os.ModePerm)
 		if err != nil {
-			log.Fatal("[Violet] Failed to create certificate path")
+			logger.Logger.Fatal("Failed to create certificate path")
 		}
 		// create path to key dir
 		err = os.MkdirAll(filepath.Join(wd, "keys"), os.ModePerm)
 		if err != nil {
-			log.Fatal("[Violet] Failed to create certificate key path")
+			logger.Logger.Fatal("Failed to create certificate key path")
 		}
 	}
 
@@ -96,20 +96,20 @@ func normalLoad(startUp startUpConfig, wd string) {
 		errorPageDir = os.DirFS(startUp.ErrorPagePath)
 		err := os.MkdirAll(startUp.ErrorPagePath, os.ModePerm)
 		if err != nil {
-			log.Fatalf("[Violet] Failed to create error page path '%s'", startUp.ErrorPagePath)
+			logger.Logger.Fatal("Failed to create error page", "path", startUp.ErrorPagePath)
 		}
 	}
 
 	// load the MJWT RSA public key from a pem encoded file
 	mJwtVerify, err := mjwt.NewMJwtVerifierFromFile(filepath.Join(wd, "signer.public.pem"))
 	if err != nil {
-		log.Fatalf("[Violet] Failed to load MJWT verifier public key from file '%s': %s", filepath.Join(wd, "signer.public.pem"), err)
+		logger.Logger.Fatal("Failed to load MJWT verifier public key", "file", filepath.Join(wd, "signer.public.pem"), "err", err)
 	}
 
 	// open sqlite database
 	db, err := violet.InitDB(filepath.Join(wd, "violet.db.sqlite"))
 	if err != nil {
-		log.Fatal("[Violet] Failed to open database")
+		logger.Logger.Fatal("Failed to open database", "err", err)
 	}
 
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
@@ -155,20 +155,23 @@ func normalLoad(startUp startUpConfig, wd string) {
 	if srvConf.ApiListen != "" {
 		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry)
 		srvApi.SetKeepAlivesEnabled(false)
-		log.Printf("[API] Starting API server on: '%s'\n", srvApi.Addr)
-		go utils.RunBackgroundHttp("API", srvApi)
+		l := logger.Logger.With("server", "API")
+		l.Info("Starting server", "addr", srvApi.Addr)
+		go utils.RunBackgroundHttp(l, srvApi)
 	}
 	if srvConf.HttpListen != "" {
 		srvHttp = servers.NewHttpServer(srvConf, promRegistry)
 		srvHttp.SetKeepAlivesEnabled(false)
-		log.Printf("[HTTP] Starting HTTP server on: '%s'\n", srvHttp.Addr)
-		go utils.RunBackgroundHttp("HTTP", srvHttp)
+		l := logger.Logger.With("server", "HTTP")
+		l.Info("Starting server", "addr", srvHttp.Addr)
+		go utils.RunBackgroundHttp(l, srvHttp)
 	}
 	if srvConf.HttpsListen != "" {
 		srvHttps = servers.NewHttpsServer(srvConf, promRegistry)
 		srvHttps.SetKeepAlivesEnabled(false)
-		log.Printf("[HTTPS] Starting HTTPS server on: '%s'\n", srvHttps.Addr)
-		go utils.RunBackgroundHttps("HTTPS", srvHttps)
+		l := logger.Logger.With("server", "HTTPS")
+		l.Info("Starting server", "addr", srvHttps.Addr)
+		go utils.RunBackgroundHttps(l, srvHttps)
 	}
 
 	exit_reload.ExitReload("Violet", func() {

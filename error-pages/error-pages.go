@@ -2,15 +2,17 @@ package error_pages
 
 import (
 	"fmt"
+	"github.com/1f349/violet/logger"
 	"github.com/mrmelon54/rescheduler"
 	"io/fs"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Error Pages")
 
 // ErrorPages stores the custom error pages and is called by the servers to
 // output meaningful pages for HTTP error codes
@@ -78,7 +80,7 @@ func (e *ErrorPages) threadCompile() {
 	if e.dir != nil {
 		err := e.internalCompile(errorPageMap)
 		if err != nil {
-			log.Printf("[ErrorPages] Compile failed: %s\n", err)
+			Logger.Info("Compile failed", "err", err)
 			return
 		}
 	}
@@ -96,7 +98,7 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 		return fmt.Errorf("failed to read error pages dir: %w", err)
 	}
 
-	log.Printf("[ErrorPages] Compiling lookup table for %d error pages\n", len(files))
+	Logger.Info("Compiling lookup table", "page count", len(files))
 
 	// find and load error pages
 	for _, i := range files {
@@ -111,20 +113,20 @@ func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) err
 
 		// if the extension is not 'html' then ignore the file
 		if ext != ".html" {
-			log.Printf("[ErrorPages] WARNING: ignoring non '.html' file in error pages directory: '%s'\n", name)
+			Logger.Warn("Ignoring non '.html' file in error pages directory", "name", name)
 			continue
 		}
 
 		// if the name can't be
 		nameInt, err := strconv.Atoi(strings.TrimSuffix(name, ".html"))
 		if err != nil {
-			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory: '%s'\n", name)
+			Logger.Warn("Ignoring invalid error page in error pages directory", "name", name)
 			continue
 		}
 
 		// check if code is in range 100-599
 		if nameInt < 100 || nameInt >= 600 {
-			log.Printf("[ErrorPages] WARNING: ignoring invalid error page in error pages directory must be 100-599: '%s'\n", name)
+			Logger.Warn("Ignoring invalid error page in error pages directory must be 100-599", "name", name)
 			continue
 		}
 

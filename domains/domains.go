@@ -4,12 +4,14 @@ import (
 	"context"
 	_ "embed"
 	"github.com/1f349/violet/database"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/utils"
 	"github.com/mrmelon54/rescheduler"
-	"log"
 	"strings"
 	"sync"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Domains")
 
 // Domains is the domain list and management system.
 type Domains struct {
@@ -68,7 +70,7 @@ func (d *Domains) threadCompile() {
 	// compile map and check errors
 	err := d.internalCompile(domainMap)
 	if err != nil {
-		log.Printf("[Domains] Compile failed: %s\n", err)
+		Logger.Info("Compile faile", "err", err)
 		return
 	}
 
@@ -81,7 +83,7 @@ func (d *Domains) threadCompile() {
 // internalCompile is a hidden internal method for querying the database during
 // the Compile() method.
 func (d *Domains) internalCompile(m map[string]struct{}) error {
-	log.Println("[Domains] Updating domains from database")
+	Logger.Info("Updating domains from database")
 
 	// sql or something?
 	rows, err := d.db.GetActiveDomains(context.Background())
@@ -105,7 +107,7 @@ func (d *Domains) Put(domain string, active bool) {
 		Active: active,
 	})
 	if err != nil {
-		log.Printf("[Violet] Database error: %s\n", err)
+		logger.Logger.Infof("Database error: %s\n", err)
 	}
 }
 
@@ -114,6 +116,6 @@ func (d *Domains) Delete(domain string) {
 	defer d.s.Unlock()
 	err := d.db.DeleteDomain(context.Background(), domain)
 	if err != nil {
-		log.Printf("[Violet] Database error: %s\n", err)
+		logger.Logger.Infof("Database error: %s\n", err)
 	}
 }

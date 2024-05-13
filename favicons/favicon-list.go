@@ -74,7 +74,7 @@ func (l *FaviconList) PreProcess(convert func(in []byte) ([]byte, error)) error 
 		// download SVG
 		l.Svg.Raw, err = getFaviconViaRequest(l.Svg.Url)
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to fetch SVG icon: %w", err)
+			return fmt.Errorf("favicons: failed to fetch SVG icon: %w", err)
 		}
 		l.Svg.Hash = hex.EncodeToString(sha256.New().Sum(l.Svg.Raw))
 	}
@@ -84,14 +84,14 @@ func (l *FaviconList) PreProcess(convert func(in []byte) ([]byte, error)) error 
 		// download PNG
 		l.Png.Raw, err = getFaviconViaRequest(l.Png.Url)
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to fetch PNG icon: %w", err)
+			return fmt.Errorf("favicons: failed to fetch PNG icon: %w", err)
 		}
 	} else if l.Svg != nil {
 		// generate PNG from SVG
 		l.Png = &FaviconImage{}
 		l.Png.Raw, err = convert(l.Svg.Raw)
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to generate PNG icon: %w", err)
+			return fmt.Errorf("favicons: failed to generate PNG icon: %w", err)
 		}
 	}
 
@@ -100,19 +100,19 @@ func (l *FaviconList) PreProcess(convert func(in []byte) ([]byte, error)) error 
 		// download ICO
 		l.Ico.Raw, err = getFaviconViaRequest(l.Ico.Url)
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to fetch ICO icon: %w", err)
+			return fmt.Errorf("favicons: failed to fetch ICO icon: %w", err)
 		}
 	} else if l.Png != nil {
 		// generate ICO from PNG
 		l.Ico = &FaviconImage{}
 		decode, err := png.Decode(bytes.NewReader(l.Png.Raw))
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to decode PNG icon: %w", err)
+			return fmt.Errorf("favicons: failed to decode PNG icon: %w", err)
 		}
 		b := decode.Bounds()
 		l.Ico.Raw, err = png2ico.ConvertPngToIco(l.Png.Raw, b.Dx(), b.Dy())
 		if err != nil {
-			return fmt.Errorf("[Favicons] Failed to generate ICO icon: %w", err)
+			return fmt.Errorf("favicons: failed to generate ICO icon: %w", err)
 		}
 	}
 
@@ -139,16 +139,16 @@ func (l *FaviconList) genSha256() {
 var getFaviconViaRequest = func(url string) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("[Favicons] Failed to send request '%s': %w", url, err)
+		return nil, fmt.Errorf("favicons: Failed to send request '%s': %w", url, err)
 	}
 	req.Header.Set("X-Violet-Raw-Favicon", "1")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("[Favicons] Failed to do request '%s': %w", url, err)
+		return nil, fmt.Errorf("favicons: failed to do request '%s': %w", url, err)
 	}
 	rawBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("[Favicons] Failed to read response '%s': %w", url, err)
+		return nil, fmt.Errorf("favicons: failed to read response '%s': %w", url, err)
 	}
 	return rawBody, nil
 }

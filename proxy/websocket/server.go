@@ -1,12 +1,14 @@
 package websocket
 
 import (
+	"github.com/1f349/violet/logger"
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Websocket")
 
 var upgrader = websocket.Upgrader{
 	HandshakeTimeout: time.Second * 5,
@@ -34,7 +36,7 @@ func NewServer() *Server {
 
 func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	req.URL.Scheme = "ws"
-	log.Printf("[Websocket] Upgrading request to '%s' from '%s'\n", req.URL.String(), req.Header.Get("Origin"))
+	Logger.Info("Upgrading request", "url", req.URL, "origin", req.Header.Get("Origin"))
 
 	c, err := upgrader.Upgrade(rw, req, nil)
 	if err != nil {
@@ -54,12 +56,12 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	s.conns[c.RemoteAddr().String()] = c
 	s.connLock.Unlock()
 
-	log.Printf("[Websocket] Dialing: '%s'\n", req.URL.String())
+	Logger.Info("Dialing", "url", req.URL)
 
 	// dial for internal connection
 	ic, _, err := websocket.DefaultDialer.DialContext(req.Context(), req.URL.String(), nil)
 	if err != nil {
-		log.Printf("[Websocket] Failed to dial '%s': %s\n", req.URL.String(), err)
+		Logger.Info("Failed to dial", "url", req.URL, "err", err)
 		s.Remove(c)
 		return
 	}
@@ -73,7 +75,7 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	go s.wsRelay(d2, ic, c)
 
 	// wait for done signal and close both connections
-	log.Println("[Websocket] Completed websocket hijacking")
+	Logger.Info("Completed websocket hijacking")
 
 	// waiting until d1 or d2 close then automatically defer close both connections
 	select {
@@ -89,7 +91,7 @@ func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
 	for {
 		mt, message, err := a.ReadMessage()
 		if err != nil {
-			log.Println("Websocket read message error: ", err)
+			Logger.Info("Read message", "err", err)
 			return
 		}
 		if b.WriteMessage(mt, message) != nil {

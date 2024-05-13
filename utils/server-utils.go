@@ -2,33 +2,33 @@ package utils
 
 import (
 	"errors"
-	"log"
+	"github.com/charmbracelet/log"
 	"net/http"
 	"strings"
 )
 
 // logHttpServerError is the internal function powering the logging in
 // RunBackgroundHttp and RunBackgroundHttps.
-func logHttpServerError(prefix string, err error) {
+func logHttpServerError(logger *log.Logger, err error) {
 	if err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
-			log.Printf("[%s] The http server shutdown successfully\n", prefix)
+			logger.Info("The http server shutdown successfully")
 		} else {
-			log.Printf("[%s] Error trying to host the http server: %s\n", prefix, err.Error())
+			logger.Info("Error trying to host the http server", "err", err.Error())
 		}
 	}
 }
 
 // RunBackgroundHttp runs a http server and logs when the server closes or
 // errors.
-func RunBackgroundHttp(prefix string, s *http.Server) {
-	logHttpServerError(prefix, s.ListenAndServe())
+func RunBackgroundHttp(logger *log.Logger, s *http.Server) {
+	logHttpServerError(logger, s.ListenAndServe())
 }
 
 // RunBackgroundHttps runs a http server with TLS encryption and logs when the
 // server closes or errors.
-func RunBackgroundHttps(prefix string, s *http.Server) {
-	logHttpServerError(prefix, s.ListenAndServeTLS("", ""))
+func RunBackgroundHttps(logger *log.Logger, s *http.Server) {
+	logHttpServerError(logger, s.ListenAndServeTLS("", ""))
 }
 
 // GetBearer returns the bearer from the Authorization header or an empty string

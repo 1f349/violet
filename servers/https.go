@@ -4,13 +4,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/1f349/violet/favicons"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/servers/metrics"
 	"github.com/1f349/violet/utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
-	"log"
 	"net/http"
 	"path"
 	"runtime"
@@ -21,7 +21,7 @@ import (
 // endpoints for the reverse proxy.
 func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server {
 	r := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		log.Printf("[Debug] Request: %s - '%s' - '%s' - '%s' - len: %d - thread: %d\n", req.Method, req.URL.String(), req.RemoteAddr, req.Host, req.ContentLength, runtime.NumGoroutine())
+		logger.Logger.Debug("Request", "method", req.Method, "url", req.URL, "remote", req.RemoteAddr, "host", req.Host, "length", req.ContentLength, "goroutine", runtime.NumGoroutine())
 		conf.Router.ServeHTTP(rw, req)
 	})
 	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
@@ -88,13 +88,13 @@ func setupRateLimiter(rateLimit uint64, next http.Handler) http.Handler {
 		Interval: time.Minute,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		logger.Logger.Fatal("Failed to initialize memory store", "err", err)
 	}
 
 	// create a middleware using ips as the key for rate limits
 	middleware, err := httplimit.NewMiddleware(store, httplimit.IPKeyFunc())
 	if err != nil {
-		log.Fatalln(err)
+		logger.Logger.Fatal("Failed to initialize httplimit middleware", "err", err)
 	}
 	return middleware.Handle(next)
 }

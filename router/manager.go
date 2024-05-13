@@ -4,14 +4,16 @@ import (
 	"context"
 	_ "embed"
 	"github.com/1f349/violet/database"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/target"
 	"github.com/mrmelon54/rescheduler"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Manager")
 
 // Manager is a database and mutex wrap around router allowing it to be
 // dynamically regenerated after updating the database of routes.
@@ -54,7 +56,7 @@ func (m *Manager) threadCompile() {
 	// compile router and check errors
 	err := m.internalCompile(router)
 	if err != nil {
-		log.Printf("[Manager] Compile failed: %s\n", err)
+		Logger.Info("Compile failed", "err", err)
 		return
 	}
 
@@ -67,7 +69,7 @@ func (m *Manager) threadCompile() {
 // internalCompile is a hidden internal method for querying the database during
 // the Compile() method.
 func (m *Manager) internalCompile(router *Router) error {
-	log.Println("[Manager] Updating routes from database")
+	Logger.Info("Updating routes from database")
 
 	// sql or something?
 	routeRows, err := m.db.GetActiveRoutes(context.Background())

@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/1f349/violet/database"
+	"github.com/1f349/violet/logger"
 	"github.com/mrmelon54/rescheduler"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"sync"
 )
+
+var Logger = logger.Logger.WithPrefix("Violet Favicons")
 
 var ErrFaviconNotFound = errors.New("favicon not found")
 
@@ -66,7 +68,7 @@ func (f *Favicons) threadCompile() {
 	err := f.internalCompile(favicons)
 	if err != nil {
 		// log compile errors
-		log.Printf("[Favicons] Compile failed: %s\n", err)
+		Logger.Info("Compile failed", "err", err)
 		return
 	}
 

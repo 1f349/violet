@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"github.com/1f349/violet"
 	"github.com/1f349/violet/domains"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/proxy/websocket"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/target"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/google/subcommands"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -42,7 +42,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	// get absolute path to specify files
 	wdAbs, err := filepath.Abs(s.wdPath)
 	if err != nil {
-		fmt.Println("[Violet] Failed to get full directory path: ", err)
+		fmt.Println("Failed to get full directory path: ", err)
 		return subcommands.ExitFailure
 	}
 
@@ -50,11 +50,11 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	createFile := false
 	err = survey.AskOne(&survey.Confirm{Message: fmt.Sprintf("Create Violet config files in this directory: '%s'?", wdAbs)}, &createFile)
 	if err != nil {
-		fmt.Println("[Violet] Error: ", err)
+		fmt.Println("Error: ", err)
 		return subcommands.ExitFailure
 	}
 	if !createFile {
-		fmt.Println("[Violet] Goodbye")
+		fmt.Println("Goodbye")
 		return subcommands.ExitSuccess
 	}
 
@@ -111,7 +111,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		},
 	}, &answers)
 	if err != nil {
-		fmt.Println("[Violet] Error: ", err)
+		fmt.Println("Error: ", err)
 		return subcommands.ExitFailure
 	}
 
@@ -142,14 +142,14 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		RateLimit:   answers.RateLimit,
 	})
 	if err != nil {
-		fmt.Println("[Violet] Failed to write config file: ", err)
+		fmt.Println("Failed to write config file: ", err)
 		return subcommands.ExitFailure
 	}
 
 	// open sqlite database
 	db, err := violet.InitDB(databaseFile)
 	if err != nil {
-		log.Fatalf("[Violet] Failed to open database '%s'...", databaseFile)
+		logger.Logger.Fatal("Failed to open database", "err", err)
 	}
 
 	// domain manager to add a domain, no need to compile here as the program needs
@@ -168,14 +168,14 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 			return nil
 		}))
 		if err != nil {
-			fmt.Println("[Violet] Error: ", err)
+			fmt.Println("Error: ", err)
 			return subcommands.ExitFailure
 		}
 
 		// parse the api url
 		apiUrl, err := url.Parse(answers.ApiUrl)
 		if err != nil {
-			fmt.Println("[Violet] Failed to parse API URL: ", err)
+			fmt.Println("Failed to parse API URL: ", err)
 			return subcommands.ExitFailure
 		}
 
@@ -191,13 +191,13 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 			Active: true,
 		})
 		if err != nil {
-			fmt.Println("[Violet] Failed to insert api route into database: ", err)
+			fmt.Println("Failed to insert api route into database: ", err)
 			return subcommands.ExitFailure
 		}
 	}
 
-	fmt.Println("[Violet] Setup complete")
-	fmt.Printf("[Violet] Run the reverse proxy with `violet serve -conf %s`\n", confFile)
+	fmt.Println("Setup complete")
+	fmt.Printf("Run the reverse proxy with `violet serve -conf %s`\n", confFile)
 
 	return subcommands.ExitSuccess
 }
