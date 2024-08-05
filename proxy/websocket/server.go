@@ -4,6 +4,7 @@ import (
 	"github.com/1f349/violet/logger"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 )
@@ -59,7 +60,7 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	Logger.Info("Dialing", "url", req.URL)
 
 	// dial for internal connection
-	ic, _, err := websocket.DefaultDialer.DialContext(req.Context(), req.URL.String(), nil)
+	ic, _, err := websocket.DefaultDialer.DialContext(req.Context(), req.URL.String(), filterWebsocketHeaders(req.Header))
 	if err != nil {
 		Logger.Info("Failed to dial", "url", req.URL, "err", err)
 		s.Remove(c)
@@ -82,6 +83,16 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 	case <-d1:
 	case <-d2:
 	}
+}
+
+// filterWebsocketHeaders allows specific headers to forward to the underlying websocket connection
+func filterWebsocketHeaders(headers http.Header) (out http.Header) {
+	for k, v := range headers {
+		if k == "Origin" {
+			out[k] = slices.Clone(v)
+		}
+	}
+	return
 }
 
 func (s *Server) wsRelay(done chan struct{}, a, b *websocket.Conn) {
