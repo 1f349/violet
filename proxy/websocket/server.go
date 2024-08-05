@@ -87,6 +87,7 @@ func (s *Server) Upgrade(rw http.ResponseWriter, req *http.Request) {
 
 // filterWebsocketHeaders allows specific headers to forward to the underlying websocket connection
 func filterWebsocketHeaders(headers http.Header) (out http.Header) {
+	out = make(http.Header)
 	for k, v := range headers {
 		if k == "Origin" {
 			out[k] = slices.Clone(v)
