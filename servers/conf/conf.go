@@ -11,16 +11,13 @@ import (
 
 // Conf stores the shared configuration for the API, HTTP and HTTPS servers.
 type Conf struct {
-	ApiListen   string // api server listen address
-	HttpListen  string // http server listen address
-	HttpsListen string // https server listen address
-	RateLimit   uint64 // rate limit per minute
-	DB          *database.Queries
-	Domains     utils.DomainProvider
-	Acme        utils.AcmeChallengeProvider
-	Certs       utils.CertProvider
-	Favicons    *favicons.Favicons
-	Signer      mjwt.Verifier
-	ErrorPages  *errorPages.ErrorPages
-	Router      *router.Manager
+	RateLimit  uint64 // rate limit per minute
+	DB         *database.Queries
+	Domains    utils.DomainProvider
+	Acme       utils.AcmeChallengeProvider
+	Certs      utils.CertProvider
+	Favicons   *favicons.Favicons
+	Signer     mjwt.Verifier
+	ErrorPages *errorPages.ErrorPages
+	Router     *router.Manager
 }

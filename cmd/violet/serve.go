@@ -18,34 +18,52 @@ import (
 	"github.com/1f349/violet/servers/api"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
+	"github.com/charmbracelet/log"
+	"github.com/cloudflare/tableflip"
 	"github.com/google/subcommands"
-	"github.com/mrmelon54/exit-reload"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"io/fs"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 )
 
 type serveCmd struct {
 	configPath string
-	cpuprofile string
+	debugLog   bool
+	pidFile    string
 }
 
 func (s *serveCmd) Name() string     { return "serve" }
 func (s *serveCmd) Synopsis() string { return "Serve reverse proxy server" }
 func (s *serveCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&s.configPath, "conf", "", "/path/to/config.json : path to the config file")
+	f.BoolVar(&s.debugLog, "debug", false, "enable debug logging")
+	f.StringVar(&s.pidFile, "pid-file", "", "path to pid file")
 }
 func (s *serveCmd) Usage() string {
-	return `serve [-conf <config file>]
+	return `serve [-conf <config file>] [-debug] [-pid-file <pid file>]
   Serve reverse proxy server using information from config file
 `
 }
 
 func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+	if s.debugLog {
+		logger.Logger.SetLevel(log.DebugLevel)
+	}
 	logger.Logger.Info("Starting...")
+
+	upg, err := tableflip.New(tableflip.Options{
+		PIDFile: s.pidFile,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer upg.Stop()
 
 	if s.configPath == "" {
 		logger.Logger.Info("Error: config flag is missing")
@@ -71,13 +89,9 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 	// working directory is the parent of the config file
 	wd := filepath.Dir(s.configPath)
-	normalLoad(config, wd)
-	return subcommands.ExitSuccess
-}
 
-func normalLoad(startUp startUpConfig, wd string) {
 	// the cert and key paths are useless in self-signed mode
-	if !startUp.SelfSigned {
+	if !config.SelfSigned {
 		// create path to cert dir
 		err := os.MkdirAll(filepath.Join(wd, "certs"), os.ModePerm)
 		if err != nil {
@@ -92,11 +106,11 @@ func normalLoad(startUp startUpConfig, wd string) {
 
 	// errorPageDir stores an FS interface for accessing the error page directory
 	var errorPageDir fs.FS
-	if startUp.ErrorPagePath != "" {
-		errorPageDir = os.DirFS(startUp.ErrorPagePath)
-		err := os.MkdirAll(startUp.ErrorPagePath, os.ModePerm)
+	if config.ErrorPagePath != "" {
+		errorPageDir = os.DirFS(config.ErrorPagePath)
+		err := os.MkdirAll(config.ErrorPagePath, os.ModePerm)
 		if err != nil {
-			logger.Logger.Fatal("Failed to create error page", "path", startUp.ErrorPagePath)
+			logger.Logger.Fatal("Failed to create error page", "path", config.ErrorPagePath)
 		}
 	}
 
@@ -123,75 +137,113 @@ func normalLoad(startUp startUpConfig, wd string) {
 	)
 
 	ws := websocket.NewServer()
-	allowedDomains := domains.New(db)                              // load allowed domains
-	acmeChallenges := utils.NewAcmeChallenge()                     // load acme challenge store
-	allowedCerts := certs.New(certDir, keyDir, startUp.SelfSigned) // load certificate manager
-	hybridTransport := proxy.NewHybridTransport(ws)                // load reverse proxy
-	dynamicFavicons := favicons.New(db, startUp.InkscapeCmd)       // load dynamic favicon provider
-	dynamicErrorPages := errorPages.New(errorPageDir)              // load dynamic error page provider
-	dynamicRouter := router.NewManager(db, hybridTransport)        // load dynamic router manager
+	allowedDomains := domains.New(db)                             // load allowed domains
+	acmeChallenges := utils.NewAcmeChallenge()                    // load acme challenge store
+	allowedCerts := certs.New(certDir, keyDir, config.SelfSigned) // load certificate manager
+	hybridTransport := proxy.NewHybridTransport(ws)               // load reverse proxy
+	dynamicFavicons := favicons.New(db, config.InkscapeCmd)       // load dynamic favicon provider
+	dynamicErrorPages := errorPages.New(errorPageDir)             // load dynamic error page provider
+	dynamicRouter := router.NewManager(db, hybridTransport)       // load dynamic router manager
 
 	// struct containing config for the http servers
 	srvConf := &conf.Conf{
-		ApiListen:   startUp.Listen.Api,
-		HttpListen:  startUp.Listen.Http,
-		HttpsListen: startUp.Listen.Https,
-		RateLimit:   startUp.RateLimit,
-		DB:          db,
-		Domains:     allowedDomains,
-		Acme:        acmeChallenges,
-		Certs:       allowedCerts,
-		Favicons:    dynamicFavicons,
-		Signer:      mJwtVerify,
-		ErrorPages:  dynamicErrorPages,
-		Router:      dynamicRouter,
+		RateLimit:  config.RateLimit,
+		DB:         db,
+		Domains:    allowedDomains,
+		Acme:       acmeChallenges,
+		Certs:      allowedCerts,
+		Favicons:   dynamicFavicons,
+		Signer:     mJwtVerify,
+		ErrorPages: dynamicErrorPages,
+		Router:     dynamicRouter,
 	}
 
 	// create the compilable list and run a first time compile
 	allCompilables := utils.MultiCompilable{allowedDomains, allowedCerts, dynamicFavicons, dynamicErrorPages, dynamicRouter}
 	allCompilables.Compile()
 
+	_, httpsPort, ok := utils.SplitDomainPort(config.Listen.Https, 443)
+	if !ok {
+		httpsPort = 443
+	}
+
 	var srvApi, srvHttp, srvHttps *http.Server
-	if srvConf.ApiListen != "" {
+	if config.Listen.Api != "" {
+		// Listen must be called before Ready
+		lnApi, err := upg.Listen("tcp", config.Listen.Api)
+		if err != nil {
+			logger.Logger.Fatal("Listen failed", "err", err)
+		}
 		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry)
 		srvApi.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "API")
 		l.Info("Starting server", "addr", srvApi.Addr)
-		go utils.RunBackgroundHttp(l, srvApi)
+		go utils.RunBackgroundHttp(l, srvApi, lnApi)
 	}
-	if srvConf.HttpListen != "" {
-		srvHttp = servers.NewHttpServer(srvConf, promRegistry)
+	if config.Listen.Http != "" {
+		// Listen must be called before Ready
+		lnHttp, err := upg.Listen("tcp", config.Listen.Http)
+		if err != nil {
+			logger.Logger.Fatal("Listen failed", "err", err)
+		}
+		srvHttp = servers.NewHttpServer(uint16(httpsPort), srvConf, promRegistry)
 		srvHttp.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTP")
 		l.Info("Starting server", "addr", srvHttp.Addr)
-		go utils.RunBackgroundHttp(l, srvHttp)
+		go utils.RunBackgroundHttp(l, srvHttp, lnHttp)
 	}
-	if srvConf.HttpsListen != "" {
+	if config.Listen.Https != "" {
+		// Listen must be called before Ready
+		lnHttps, err := upg.Listen("tcp", config.Listen.Https)
+		if err != nil {
+			logger.Logger.Fatal("Listen failed", "err", err)
+		}
 		srvHttps = servers.NewHttpsServer(srvConf, promRegistry)
 		srvHttps.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTPS")
 		l.Info("Starting server", "addr", srvHttps.Addr)
-		go utils.RunBackgroundHttps(l, srvHttps)
+		go utils.RunBackgroundHttps(l, srvHttps, lnHttps)
 	}
 
-	exit_reload.ExitReload("Violet", func() {
-		allCompilables.Compile()
-	}, func() {
-		// stop updating certificates
-		allowedCerts.Stop()
+	// Do an upgrade on SIGHUP
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGHUP)
+		for range sig {
+			err := upg.Upgrade()
+			if err != nil {
+				logger.Logger.Error("Failed upgrade", "err", err)
+			}
+		}
+	}()
 
-		// close websockets first
-		ws.Shutdown()
+	logger.Logger.Info("Ready")
+	if err := upg.Ready(); err != nil {
+		panic(err)
+	}
+	<-upg.Exit()
 
-		// close http servers
-		if srvApi != nil {
-			_ = srvApi.Close()
-		}
-		if srvHttp != nil {
-			_ = srvHttp.Close()
-		}
-		if srvHttps != nil {
-			_ = srvHttps.Close()
-		}
+	time.AfterFunc(30*time.Second, func() {
+		logger.Logger.Warn("Graceful shutdown timed out")
+		os.Exit(1)
 	})
+
+	// stop updating certificates
+	allowedCerts.Stop()
+
+	// close websockets first
+	ws.Shutdown()
+
+	// close http servers
+	if srvApi != nil {
+		_ = srvApi.Close()
+	}
+	if srvHttp != nil {
+		_ = srvHttp.Close()
+	}
+	if srvHttps != nil {
+		_ = srvHttps.Close()
+	}
+
+	return subcommands.ExitSuccess
 }

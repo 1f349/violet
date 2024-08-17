@@ -42,7 +42,6 @@ func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server
 	})
 
 	return &http.Server{
-		Addr:    conf.HttpsListen,
 		Handler: hsts,
 		TLSConfig: &tls.Config{
 			// Suggested by https://ssl-config.mozilla.org/#server=go&version=1.21.5&config=intermediate
