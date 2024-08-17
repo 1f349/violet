@@ -177,7 +177,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry)
 		srvApi.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "API")
-		l.Info("Starting server", "addr", srvApi.Addr)
+		l.Info("Starting server", "addr", config.Listen.Api)
 		go utils.RunBackgroundHttp(l, srvApi, lnApi)
 	}
 	if config.Listen.Http != "" {
@@ -189,7 +189,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		srvHttp = servers.NewHttpServer(uint16(httpsPort), srvConf, promRegistry)
 		srvHttp.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTP")
-		l.Info("Starting server", "addr", srvHttp.Addr)
+		l.Info("Starting server", "addr", config.Listen.Http)
 		go utils.RunBackgroundHttp(l, srvHttp, lnHttp)
 	}
 	if config.Listen.Https != "" {
@@ -201,7 +201,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		srvHttps = servers.NewHttpsServer(srvConf, promRegistry)
 		srvHttps.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTPS")
-		l.Info("Starting server", "addr", srvHttps.Addr)
+		l.Info("Starting server", "addr", config.Listen.Https)
 		go utils.RunBackgroundHttps(l, srvHttps, lnHttps)
 	}
 
