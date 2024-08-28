@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy/websocket"
-	"github.com/google/uuid"
 	"net"
 	"net/http"
 	"sync"
@@ -75,24 +74,15 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 
 // SecureRoundTrip calls the secure transport
 func (h *HybridTransport) SecureRoundTrip(req *http.Request) (*http.Response, error) {
-	u := uuid.New()
-	loggerSecure.Info("Start upgrade", "id", u)
-	defer loggerSecure.Info("Stop upgrade", "id", u)
 	return h.normalTransport.RoundTrip(req)
 }
 
 // InsecureRoundTrip calls the insecure transport
 func (h *HybridTransport) InsecureRoundTrip(req *http.Request) (*http.Response, error) {
-	u := uuid.New()
-	loggerInsecure.Info("Start upgrade", "id", u)
-	defer loggerInsecure.Info("Stop upgrade", "id", u)
 	return h.insecureTransport.RoundTrip(req)
 }
 
 // ConnectWebsocket calls the websocket upgrader and thus hijacks the connection
 func (h *HybridTransport) ConnectWebsocket(rw http.ResponseWriter, req *http.Request) {
-	u := uuid.New()
-	loggerWebsocket.Info("Start upgrade", "id", u)
 	h.ws.Upgrade(rw, req)
-	loggerWebsocket.Info("Stop upgrade", "id", u)
 }
