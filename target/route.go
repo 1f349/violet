@@ -181,7 +181,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		resp, err = r.Proxy.SecureRoundTrip(req2)
 	}
 	if err != nil {
-		Logger.Warn("Error receiving internal round trip response", "err", err)
+		Logger.Warn("Error receiving internal round trip response", "route src", r.Src, "url", req2.URL.String(), "err", err)
 		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
 		return
 	}
