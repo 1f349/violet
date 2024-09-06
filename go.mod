@@ -6,6 +6,7 @@ require (
 	github.com/1f349/mjwt v0.2.5
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/charmbracelet/log v0.4.0
+	github.com/cloudflare/tableflip v1.2.3
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/subcommands v1.2.0
 	github.com/google/uuid v1.6.0
@@ -13,7 +14,6 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mrmelon54/certgen v0.0.2
-	github.com/mrmelon54/exit-reload v0.0.2
 	github.com/mrmelon54/png2ico v1.0.2
 	github.com/mrmelon54/rescheduler v0.0.3
 	github.com/mrmelon54/trie v0.0.3

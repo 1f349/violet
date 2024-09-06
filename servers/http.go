@@ -17,13 +17,9 @@ import (
 //
 // `/.well-known/acme-challenge/{token}` is used for outputting answers for
 // acme challenges, this is used for Let's Encrypt HTTP verification.
-func NewHttpServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server {
+func NewHttpServer(httpsPort uint16, conf *conf.Conf, registry *prometheus.Registry) *http.Server {
 	r := httprouter.New()
 	var secureExtend string
-	_, httpsPort, ok := utils.SplitDomainPort(conf.HttpsListen, 443)
-	if !ok {
-		httpsPort = 443
-	}
 	if httpsPort != 443 {
 		secureExtend = fmt.Sprintf(":%d", httpsPort)
 	}
@@ -72,7 +68,6 @@ func NewHttpServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server 
 
 	// Create and run http server
 	return &http.Server{
-		Addr:              conf.HttpListen,
 		Handler:           metricsMiddleware,
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Minute,

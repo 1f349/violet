@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"github.com/charmbracelet/log"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -21,14 +22,14 @@ func logHttpServerError(logger *log.Logger, err error) {
 
 // RunBackgroundHttp runs a http server and logs when the server closes or
 // errors.
-func RunBackgroundHttp(logger *log.Logger, s *http.Server) {
-	logHttpServerError(logger, s.ListenAndServe())
+func RunBackgroundHttp(logger *log.Logger, s *http.Server, ln net.Listener) {
+	logHttpServerError(logger, s.Serve(ln))
 }
 
 // RunBackgroundHttps runs a http server with TLS encryption and logs when the
 // server closes or errors.
-func RunBackgroundHttps(logger *log.Logger, s *http.Server) {
-	logHttpServerError(logger, s.ListenAndServeTLS("", ""))
+func RunBackgroundHttps(logger *log.Logger, s *http.Server, ln net.Listener) {
+	logHttpServerError(logger, s.ServeTLS(ln, "", ""))
 }
 
 // GetBearer returns the bearer from the Authorization header or an empty string
