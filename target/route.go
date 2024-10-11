@@ -5,7 +5,6 @@ import (
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/proxy"
 	"github.com/1f349/violet/utils"
-	"github.com/google/uuid"
 	websocket2 "github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
@@ -130,8 +129,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// create the internal request
 	req2, err := http.NewRequest(req.Method, u.String(), req.Body)
 	if err != nil {
-		Logger.Warn("Error generating new request", "err", err)
-		utils.RespondVioletError(rw, http.StatusBadGateway, "error generating new request")
+		utils.RespondVioletError(rw, http.StatusBadGateway, "Invalid request for proxy")
 		return
 	}
 
@@ -182,7 +180,7 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if err != nil {
 		Logger.Warn("Error receiving internal round trip response", "route src", r.Src, "url", req2.URL.String(), "err", err)
-		utils.RespondVioletError(rw, http.StatusBadGateway, "error receiving internal round trip response")
+		utils.RespondVioletError(rw, http.StatusBadGateway, "Error receiving internal round trip response")
 		return
 	}
 
@@ -192,9 +190,8 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if resp.StatusCode == http.StatusLoopDetected {
-		u := uuid.New()
-		Logger.Warn("Loop Detected", "id", u, "method", req.Method, "url", req.URL, "url2", req2.URL.String())
-		utils.RespondVioletError(rw, http.StatusLoopDetected, "error loop detected: "+u.String())
+		Logger.Warn("Loop Detected", "method", req.Method, "url", req.URL, "url2", req2.URL.String())
+		utils.RespondVioletError(rw, http.StatusLoopDetected, "Error loop detected")
 		return
 	}
 
@@ -225,7 +222,7 @@ func (r Route) internalReverseProxyMeta(rw http.ResponseWriter, req, req2 *http.
 
 	reqUpType := upgradeType(req2.Header)
 	if !asciiIsPrint(reqUpType) {
-		utils.RespondVioletError(rw, http.StatusBadRequest, fmt.Sprintf("client tried to switch to invalid protocol %q", reqUpType))
+		utils.RespondVioletError(rw, http.StatusBadRequest, fmt.Sprintf("Invalid protocol %s", reqUpType))
 		return true
 	}
 	removeHopByHopHeaders(req2.Header)
