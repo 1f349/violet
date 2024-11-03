@@ -48,7 +48,6 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry
 
 	// Create and run http server
 	return &http.Server{
-		Addr:              conf.ApiListen,
 		Handler:           r,
 		ReadTimeout:       time.Minute,
 		ReadHeaderTimeout: time.Minute,
