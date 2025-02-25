@@ -44,16 +44,7 @@ func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server
 	return &http.Server{
 		Handler: hsts,
 		TLSConfig: &tls.Config{
-			// Suggested by https://ssl-config.mozilla.org/#server=go&version=1.21.5&config=intermediate
-			MinVersion: tls.VersionTLS12,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-			},
+			MinVersion: tls.VersionTLS13,
 			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// error out on invalid domains
 				if !conf.Domains.IsValid(info.ServerName) {
