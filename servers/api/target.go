@@ -12,9 +12,9 @@ import (
 	"strings"
 )
 
-func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router.Manager) {
+func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *router.Manager) {
 	// Endpoint for routes
-	r.GET("/route", checkAuthWithPerm(verify, "violet:route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+	r.GET("/route", checkAuthWithPerm(keyStore, "violet:route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		domains := getDomainOwnershipClaims(b.Claims.Perms)
 
 		routes, err := manager.GetAllRoutes(domains)
@@ -26,7 +26,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		rw.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(rw).Encode(routes)
 	}))
-	r.POST("/route", parseJsonAndCheckOwnership[routeSource](verify, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t routeSource) {
+	r.POST("/route", parseJsonAndCheckOwnership[routeSource](keyStore, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t routeSource) {
 		err := manager.InsertRoute(target.RouteWithActive(t))
 		if err != nil {
 			logger.Logger.Infof("Failed to insert route into database: %s\n", err)
@@ -35,7 +35,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		}
 		manager.Compile()
 	}))
-	r.DELETE("/route", parseJsonAndCheckOwnership[sourceJson](verify, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
+	r.DELETE("/route", parseJsonAndCheckOwnership[sourceJson](keyStore, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRoute(t.Src)
 		if err != nil {
 			logger.Logger.Infof("Failed to delete route from database: %s\n", err)
@@ -46,7 +46,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 	}))
 
 	// Endpoint for redirects
-	r.GET("/redirect", checkAuthWithPerm(verify, "violet:redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+	r.GET("/redirect", checkAuthWithPerm(keyStore, "violet:redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		domains := getDomainOwnershipClaims(b.Claims.Perms)
 
 		redirects, err := manager.GetAllRedirects(domains)
@@ -58,7 +58,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		rw.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(rw).Encode(redirects)
 	}))
-	r.POST("/redirect", parseJsonAndCheckOwnership[redirectSource](verify, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t redirectSource) {
+	r.POST("/redirect", parseJsonAndCheckOwnership[redirectSource](keyStore, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t redirectSource) {
 		err := manager.InsertRedirect(target.RedirectWithActive(t))
 		if err != nil {
 			logger.Logger.Infof("Failed to insert redirect into database: %s\n", err)
@@ -67,7 +67,7 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 		}
 		manager.Compile()
 	}))
-	r.DELETE("/redirect", parseJsonAndCheckOwnership[sourceJson](verify, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
+	r.DELETE("/redirect", parseJsonAndCheckOwnership[sourceJson](keyStore, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRedirect(t.Src)
 		if err != nil {
 			logger.Logger.Infof("Failed to delete redirect from database: %s\n", err)
@@ -80,8 +80,8 @@ func SetupTargetApis(r *httprouter.Router, verify mjwt.Verifier, manager *router
 
 type AuthWithJsonCallback[T any] func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t T)
 
-func parseJsonAndCheckOwnership[T sourceGetter](verify mjwt.Verifier, t string, cb AuthWithJsonCallback[T]) httprouter.Handle {
-	return checkAuthWithPerm(verify, "violet:"+t, func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+func parseJsonAndCheckOwnership[T sourceGetter](keyStore *mjwt.KeyStore, t string, cb AuthWithJsonCallback[T]) httprouter.Handle {
+	return checkAuthWithPerm(keyStore, "violet:"+t, func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		var j T
 		if json.NewDecoder(req.Body).Decode(&j) != nil {
 			apiError(rw, http.StatusBadRequest, "Invalid request body")

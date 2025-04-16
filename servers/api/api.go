@@ -1,15 +1,17 @@
 package api
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"github.com/1f349/mjwt"
-	"github.com/1f349/mjwt/claims"
+	"github.com/1f349/mjwt/auth"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -65,8 +67,8 @@ func apiError(rw http.ResponseWriter, code int, m string) {
 	})
 }
 
-func domainManage(verify mjwt.Verifier, domains utils.DomainProvider) httprouter.Handle {
-	return checkAuthWithPerm(verify, "violet:domains", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+func domainManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider) httprouter.Handle {
+	return checkAuthWithPerm(keyStore, "violet:domains", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		// add domain with active state
 		domains.Put(params.ByName("domain"), req.Method == http.MethodPut)
 		domains.Compile()
@@ -74,8 +76,8 @@ func domainManage(verify mjwt.Verifier, domains utils.DomainProvider) httprouter
 	})
 }
 
-func acmeChallengeManage(verify mjwt.Verifier, domains utils.DomainProvider, acme utils.AcmeChallengeProvider) httprouter.Handle {
-	return checkAuthWithPerm(verify, "violet:acme-challenge", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
+func acmeChallengeManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider, acme utils.AcmeChallengeProvider) httprouter.Handle {
+	return checkAuthWithPerm(keyStore, "violet:acme-challenge", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		domain := params.ByName("domain")
 		if !domains.IsValid(domain) {
 			utils.RespondVioletError(rw, http.StatusBadRequest, "Invalid ACME challenge domain")
@@ -92,7 +94,7 @@ func acmeChallengeManage(verify mjwt.Verifier, domains utils.DomainProvider, acm
 
 // getDomainOwnershipClaims returns the domains marked as owned from PermStorage,
 // they match `domain:owns=<fqdn>` where fqdn will be returned
-func getDomainOwnershipClaims(perms *claims.PermStorage) []string {
+func getDomainOwnershipClaims(perms *auth.PermStorage) []string {
 	a := perms.Search("domain:owns=*")
 	for i := range a {
 		a[i] = a[i][len("domain:owns="):]
@@ -102,7 +104,7 @@ func getDomainOwnershipClaims(perms *claims.PermStorage) []string {
 
 // validateDomainOwnershipClaims validates if the claims contain the
 // `domain:owns=<fqdn>` field with the matching top level domain
-func validateDomainOwnershipClaims(a string, perms *claims.PermStorage) bool {
+func validateDomainOwnershipClaims(a string, perms *auth.PermStorage) bool {
 	if fqdn, ok := utils.GetTopFqdn(a); ok {
 		if perms.Has("domain:owns=" + fqdn) {
 			return true
