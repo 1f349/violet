@@ -13,14 +13,14 @@ import (
 var SnakeOilProv = GenSnakeOilProv()
 
 func GenSnakeOilProv() *mjwt.Issuer {
-	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		panic(err)
 	}
 	ks := mjwt.NewKeyStore()
 	keyId := uuid.NewString()
 	ks.LoadPrivateKey(keyId, key)
-	issuer, err := mjwt.NewIssuerWithKeyStore("violet.test", keyId, new(jwt.SigningMethodEd25519), ks)
+	issuer, err := mjwt.NewIssuerWithKeyStore("violet.test", keyId, jwt.SigningMethodRS512, ks)
 	if err != nil {
 		panic(err)
 	}

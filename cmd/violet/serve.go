@@ -115,7 +115,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	}
 
 	// load the MJWT RSA public key from a pem encoded file
-	mJwtVerify, err := mjwt.NewMJwtVerifierFromFile(filepath.Join(wd, "signer.public.pem"))
+	keystore, err := mjwt.NewKeyStoreFromPath(filepath.Join(wd, "keystore"))
 	if err != nil {
 		logger.Logger.Fatal("Failed to load MJWT verifier public key", "file", filepath.Join(wd, "signer.public.pem"), "err", err)
 	}
@@ -153,7 +153,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		Acme:       acmeChallenges,
 		Certs:      allowedCerts,
 		Favicons:   dynamicFavicons,
-		Signer:     mJwtVerify,
+		Signer:     keystore,
 		ErrorPages: dynamicErrorPages,
 		Router:     dynamicRouter,
 	}
