@@ -19,13 +19,25 @@ import (
 // endpoints for the software
 //
 // `/compile` - reloads all domains, routes and redirects
-func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry *prometheus.Registry) *http.Server {
+func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry *prometheus.Registry, authToken string) *http.Server {
 	r := httprouter.New()
 
 	r.GET("/", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		http.Error(rw, "Violet API Endpoint", http.StatusOK)
 	})
 	r.GET("/metrics", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		auth := req.Header.Get("Authorization")
+		if auth == "" {
+			if strings.HasPrefix(authToken, "Basic ") {
+				rw.Header().Set("WWW-Authenticate", `Basic realm="metrics"`)
+			}
+			http.Error(rw, "Invalid authorization", http.StatusUnauthorized)
+			return
+		}
+		if subtle.ConstantTimeCompare([]byte(auth), []byte(authToken)) != 1 {
+			http.Error(rw, "Forbidden", http.StatusForbidden)
+			return
+		}
 		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(rw, req)
 	})
 

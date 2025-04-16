@@ -174,7 +174,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		if err != nil {
 			logger.Logger.Fatal("Listen failed", "err", err)
 		}
-		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry)
+		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry, config.MetricsToken)
 		srvApi.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "API")
 		l.Info("Starting server", "addr", config.Listen.Api)
