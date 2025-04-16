@@ -80,12 +80,16 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 	)
 
 	hostCtxGetter := promhttp.WithLabelFromCtx("host", func(ctx context.Context) string {
-		s, _ := ctx.Value(hostCtxKey(0)).(string)
+		s, _ := ctx.Value(hostCtxKey).(string)
 		return s
 	})
 	ipCtxGetter := promhttp.WithLabelFromCtx("ip", func(ctx context.Context) string {
-		s, _ := ctx.Value(ipCtxKey(0)).(netip.AddrPort)
+		s, _ := ctx.Value(ipCtxKey).(netip.AddrPort)
 		return s.Addr().String()
+	})
+	pathCtxGetter := promhttp.WithLabelFromCtx("path", func(ctx context.Context) string {
+		s, _ := ctx.Value(pathCtxKey).(string)
+		return s
 	})
 
 	// Wraps the provided http.Handler to observe the request result with the provided metrics.
@@ -104,15 +108,19 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 					}),
 					hostCtxGetter,
 					ipCtxGetter,
+					pathCtxGetter,
 				),
 				hostCtxGetter,
 				ipCtxGetter,
+				pathCtxGetter,
 			),
 			hostCtxGetter,
 			ipCtxGetter,
+			pathCtxGetter,
 		),
 		hostCtxGetter,
 		ipCtxGetter,
+		pathCtxGetter,
 	)
 
 	return base.ServeHTTP
@@ -130,17 +138,21 @@ func New(registry prometheus.Registerer, buckets []float64) Middleware {
 	}
 }
 
-type (
-	hostCtxKey uint8
-	ipCtxKey   uint8
+type ctxKey uint8
+
+const (
+	hostCtxKey ctxKey = iota
+	ipCtxKey
+	pathCtxKey
 )
 
 func AddMetricsCtx(req *http.Request) *http.Request {
 	ctx := req.Context()
-	ctx = context.WithValue(ctx, hostCtxKey(0), req.Host)
+	ctx = context.WithValue(ctx, hostCtxKey, req.Host)
 	addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
 	if err == nil {
-		ctx = context.WithValue(ctx, ipCtxKey(0), addrPort)
+		ctx = context.WithValue(ctx, ipCtxKey, addrPort)
 	}
+	ctx = context.WithValue(ctx, pathCtxKey, req.URL.Path)
 	return req.WithContext(ctx)
 }
