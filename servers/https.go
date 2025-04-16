@@ -32,7 +32,7 @@ func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server
 	if registry != nil {
 		metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-https", favMiddleware)
 		metricsMeta = func(rw http.ResponseWriter, req *http.Request) {
-			metricsMiddleware.ServeHTTP(rw, metrics.AddHostCtx(req))
+			metricsMiddleware.ServeHTTP(rw, metrics.AddMetricsCtx(req))
 		}
 	}
 	rateLimiter := setupRateLimiter(conf.RateLimit, metricsMeta)

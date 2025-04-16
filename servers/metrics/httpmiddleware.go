@@ -6,6 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"net/netip"
 )
 
 // Copyright 2022 The Prometheus Authors
@@ -47,7 +48,7 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "Tracks the number of HTTP requests.",
-		}, []string{"method", "code", "host"},
+		}, []string{"method", "code", "host", "path", "ip"},
 	)
 	requestDuration := promauto.With(reg).NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -55,26 +56,36 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 			Help:    "Tracks the latencies for HTTP requests.",
 			Buckets: m.buckets,
 		},
-		[]string{"method", "code", "host"},
+		[]string{"method", "code", "host", "path", "ip"},
 	)
 	requestSize := promauto.With(reg).NewSummaryVec(
 		prometheus.SummaryOpts{
 			Name: "http_request_size_bytes",
 			Help: "Tracks the size of HTTP requests.",
 		},
-		[]string{"method", "code", "host"},
+		[]string{"method", "code", "host", "path", "ip"},
 	)
 	responseSize := promauto.With(reg).NewSummaryVec(
 		prometheus.SummaryOpts{
 			Name: "http_response_size_bytes",
 			Help: "Tracks the size of HTTP responses.",
 		},
-		[]string{"method", "code", "host"},
+		[]string{"method", "code", "host", "path", "ip"},
+	)
+	activeRequests := promauto.With(reg).NewGauge(
+		prometheus.GaugeOpts{
+			Name: "http_active_requests",
+			Help: "Number of active connections to the service",
+		},
 	)
 
 	hostCtxGetter := promhttp.WithLabelFromCtx("host", func(ctx context.Context) string {
 		s, _ := ctx.Value(hostCtxKey(0)).(string)
 		return s
+	})
+	ipCtxGetter := promhttp.WithLabelFromCtx("ip", func(ctx context.Context) string {
+		s, _ := ctx.Value(ipCtxKey(0)).(netip.AddrPort)
+		return s.Addr().String()
 	})
 
 	// Wraps the provided http.Handler to observe the request result with the provided metrics.
@@ -86,14 +97,22 @@ func (m *middleware) WrapHandler(handlerName string, handler http.Handler) http.
 				requestSize,
 				promhttp.InstrumentHandlerResponseSize(
 					responseSize,
-					handler,
+					http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+						activeRequests.Inc()
+						handler.ServeHTTP(rw, req)
+						activeRequests.Dec()
+					}),
 					hostCtxGetter,
+					ipCtxGetter,
 				),
 				hostCtxGetter,
+				ipCtxGetter,
 			),
 			hostCtxGetter,
+			ipCtxGetter,
 		),
 		hostCtxGetter,
+		ipCtxGetter,
 	)
 
 	return base.ServeHTTP
@@ -111,8 +130,17 @@ func New(registry prometheus.Registerer, buckets []float64) Middleware {
 	}
 }
 
-type hostCtxKey uint8
+type (
+	hostCtxKey uint8
+	ipCtxKey   uint8
+)
 
-func AddHostCtx(req *http.Request) *http.Request {
-	return req.WithContext(context.WithValue(req.Context(), hostCtxKey(0), req.Host))
+func AddMetricsCtx(req *http.Request) *http.Request {
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, hostCtxKey(0), req.Host)
+	addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
+	if err == nil {
+		ctx = context.WithValue(ctx, ipCtxKey(0), addrPort)
+	}
+	return req.WithContext(ctx)
 }
