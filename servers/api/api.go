@@ -26,15 +26,15 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry
 		http.Error(rw, "Violet API Endpoint", http.StatusOK)
 	})
 	r.GET("/metrics", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		auth := req.Header.Get("Authorization")
-		if auth == "" {
+		authValue := req.Header.Get("Authorization")
+		if authValue == "" {
 			if strings.HasPrefix(authToken, "Basic ") {
 				rw.Header().Set("WWW-Authenticate", `Basic realm="metrics"`)
 			}
 			http.Error(rw, "Invalid authorization", http.StatusUnauthorized)
 			return
 		}
-		if subtle.ConstantTimeCompare([]byte(auth), []byte(authToken)) != 1 {
+		if subtle.ConstantTimeCompare([]byte(authValue), []byte(authToken)) != 1 {
 			http.Error(rw, "Forbidden", http.StatusForbidden)
 			return
 		}
