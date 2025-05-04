@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/1f349/mjwt"
 	"github.com/1f349/mjwt/auth"
+	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
@@ -73,6 +74,7 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry
 
 // apiError outputs a generic JSON error message
 func apiError(rw http.ResponseWriter, code int, m string) {
+	logger.Logger.Debug("API Error", "code", code, "message", m)
 	rw.WriteHeader(code)
 	_ = json.NewEncoder(rw).Encode(map[string]string{
 		"error": m,
