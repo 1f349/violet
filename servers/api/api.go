@@ -73,8 +73,8 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry
 }
 
 // apiError outputs a generic JSON error message
-func apiError(rw http.ResponseWriter, code int, m string) {
-	logger.Logger.Debug("API Error", "code", code, "message", m)
+func apiError(rw http.ResponseWriter, code int, m string, err error) {
+	logger.Logger.Debug("API Error", "code", code, "message", m, "error", err)
 	rw.WriteHeader(code)
 	_ = json.NewEncoder(rw).Encode(map[string]string{
 		"error": m,

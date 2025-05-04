@@ -20,7 +20,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		routes, err := manager.GetAllRoutes(domains)
 		if err != nil {
 			logger.Logger.Infof("Failed to get routes from database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to get routes from database")
+			apiError(rw, http.StatusInternalServerError, "Failed to get routes from database", err)
 			return
 		}
 		rw.WriteHeader(http.StatusOK)
@@ -30,7 +30,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		err := manager.InsertRoute(target.RouteWithActive(t))
 		if err != nil {
 			logger.Logger.Infof("Failed to insert route into database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database")
+			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database", err)
 			return
 		}
 		manager.Compile()
@@ -39,7 +39,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		err := manager.DeleteRoute(t.Src)
 		if err != nil {
 			logger.Logger.Infof("Failed to delete route from database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to delete route from database")
+			apiError(rw, http.StatusInternalServerError, "Failed to delete route from database", err)
 			return
 		}
 		manager.Compile()
@@ -52,7 +52,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		redirects, err := manager.GetAllRedirects(domains)
 		if err != nil {
 			logger.Logger.Infof("Failed to get redirects from database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to get redirects from database")
+			apiError(rw, http.StatusInternalServerError, "Failed to get redirects from database", err)
 			return
 		}
 		rw.WriteHeader(http.StatusOK)
@@ -62,7 +62,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		err := manager.InsertRedirect(target.RedirectWithActive(t))
 		if err != nil {
 			logger.Logger.Infof("Failed to insert redirect into database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database")
+			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database", err)
 			return
 		}
 		manager.Compile()
@@ -71,7 +71,7 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		err := manager.DeleteRedirect(t.Src)
 		if err != nil {
 			logger.Logger.Infof("Failed to delete redirect from database: %s\n", err)
-			apiError(rw, http.StatusInternalServerError, "Failed to delete redirect from database")
+			apiError(rw, http.StatusInternalServerError, "Failed to delete redirect from database", err)
 			return
 		}
 		manager.Compile()
@@ -84,19 +84,19 @@ func parseJsonAndCheckOwnership[T sourceGetter](keyStore *mjwt.KeyStore, t strin
 	return checkAuthWithPerm(keyStore, "violet:"+t, func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		var j T
 		if json.NewDecoder(req.Body).Decode(&j) != nil {
-			apiError(rw, http.StatusBadRequest, "Invalid request body")
+			apiError(rw, http.StatusBadRequest, "Invalid request body", nil)
 			return
 		}
 
 		// check token owns this domain
 		host, _ := utils.SplitHostPath(j.GetSource())
 		if strings.IndexByte(host, ':') != -1 {
-			apiError(rw, http.StatusBadRequest, "Invalid route source")
+			apiError(rw, http.StatusBadRequest, "Invalid route source", nil)
 			return
 		}
 
 		if !validateDomainOwnershipClaims(host, b.Claims.Perms) {
-			apiError(rw, http.StatusBadRequest, "Token cannot modify the specified domain")
+			apiError(rw, http.StatusBadRequest, "Token cannot modify the specified domain", nil)
 			return
 		}
 

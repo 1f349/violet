@@ -19,14 +19,14 @@ func checkAuth(keyStore *mjwt.KeyStore, cb AuthCallback) httprouter.Handle {
 		// Get bearer token
 		bearer := utils.GetBearer(req)
 		if bearer == "" {
-			apiError(rw, http.StatusForbidden, "Missing bearer token")
+			apiError(rw, http.StatusForbidden, "Missing bearer token", nil)
 			return
 		}
 
 		// Read claims from mjwt
 		_, b, err := mjwt.ExtractClaims[auth.AccessTokenClaims](keyStore, bearer)
 		if err != nil {
-			apiError(rw, http.StatusForbidden, "Invalid token")
+			apiError(rw, http.StatusForbidden, "Invalid token", err)
 			return
 		}
 
@@ -41,7 +41,7 @@ func checkAuthWithPerm(keyStore *mjwt.KeyStore, perm string, cb AuthCallback) ht
 	return checkAuth(keyStore, func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		// check perms
 		if !b.Claims.Perms.Has(perm) {
-			apiError(rw, http.StatusForbidden, "No permission")
+			apiError(rw, http.StatusForbidden, "No permission", nil)
 			return
 		}
 		cb(rw, req, params, b)
