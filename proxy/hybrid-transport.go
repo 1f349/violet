@@ -51,7 +51,7 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 			TLSHandshakeTimeout:   10 * time.Second,
 			IdleConnTimeout:       30 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
-			ResponseHeaderTimeout: 10 * time.Second,
+			ResponseHeaderTimeout: 20 * time.Second,
 			DisableKeepAlives:     true,
 		}
 	}
@@ -64,7 +64,7 @@ func NewHybridTransportWithCalls(normal, insecure http.RoundTripper, ws *websock
 			TLSHandshakeTimeout:   10 * time.Second,
 			IdleConnTimeout:       30 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
-			ResponseHeaderTimeout: 10 * time.Second,
+			ResponseHeaderTimeout: 20 * time.Second,
 			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 			DisableKeepAlives:     true,
 		}
