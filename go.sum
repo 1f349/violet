@@ -1,3 +1,5 @@
+github.com/1f349/cache v0.0.7 h1:A2L5EkWhtW7LgnsaroCf1Ewtqo5Sm9ePvGW1hDGXTvo=
+github.com/1f349/cache v0.0.7/go.mod h1:2u9NWqO7IiwW6OIyKqJaMqJQiBxDzsGuJgifrxtYp3k=
 github.com/1f349/mjwt v0.4.1 h1:ooCroMMw2kcL5c9L3sLbdtxI0H4/QC8RfTxiloKr+4Y=
 github.com/1f349/mjwt v0.4.1/go.mod h1:qwnzokkqc7Z9YmKA1m9beI3OZL1GvGYHOQU2rOwoV1M=
 github.com/1f349/rsa-helper v0.0.2 h1:N/fLQqg5wrjIzG6G4zdwa5Xcv9/jIPutCls9YekZr9U=

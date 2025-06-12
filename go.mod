@@ -3,6 +3,7 @@ module github.com/1f349/violet
 go 1.24.2
 
 require (
+	github.com/1f349/cache v0.0.7
 	github.com/1f349/mjwt v0.4.1
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/charmbracelet/log v0.4.1
