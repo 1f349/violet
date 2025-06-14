@@ -4,13 +4,15 @@ FROM domains
 WHERE active = 1;
 
 -- name: AddDomain :exec
-INSERT OR
+INSERT
+OR
 REPLACE
 INTO domains (domain, active)
 VALUES (?, ?);
 
 -- name: DeleteDomain :exec
-INSERT OR
+INSERT
+OR
 REPLACE
 INTO domains(domain, active)
 VALUES (?, false);
