@@ -85,7 +85,6 @@ func domainManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider) httprou
 	return checkAuthWithPerm(keyStore, "violet:domains", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		// add domain with active state
 		domains.Put(params.ByName("domain"), req.Method == http.MethodPut)
-		domains.Compile()
 		rw.WriteHeader(http.StatusAccepted)
 	})
 }
@@ -93,7 +92,7 @@ func domainManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider) httprou
 func acmeChallengeManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider, acme utils.AcmeChallengeProvider) httprouter.Handle {
 	return checkAuthWithPerm(keyStore, "violet:acme-challenge", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		domain := params.ByName("domain")
-		if !domains.IsValid(domain) {
+		if !domains.IsValid(req.Context(), domain) {
 			utils.RespondVioletError(rw, http.StatusBadRequest, "Invalid ACME challenge domain")
 			return
 		}

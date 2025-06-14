@@ -29,7 +29,7 @@ func NewHttpServer(httpsPort uint16, conf *conf.Conf, registry *prometheus.Regis
 		h := utils.GetDomainWithoutPort(req.Host)
 
 		// check if the host is valid
-		if !conf.Domains.IsValid(req.Host) {
+		if !conf.Domains.IsValid(req.Context(), req.Host) {
 			utils.RespondVioletError(rw, http.StatusBadRequest, "Invalid host")
 			return
 		}

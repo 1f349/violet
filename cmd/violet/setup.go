@@ -21,6 +21,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 type setupCmd struct {
@@ -154,7 +155,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 	// domain manager to add a domain, no need to compile here as the program needs
 	// to be run again with the serve subcommand
-	allowedDomains := domains.New(db)
+	allowedDomains := domains.New(db, 5*time.Second)
 	allowedDomains.Put(answers.FirstDomain, true)
 
 	// don't bother with this part is the api won't be listening

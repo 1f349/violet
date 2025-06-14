@@ -1,12 +1,14 @@
 package utils
 
-import "crypto/tls"
+import (
+	"context"
+	"crypto/tls"
+)
 
 type DomainProvider interface {
-	IsValid(host string) bool
+	IsValid(ctx context.Context, host string) bool
 	Put(domain string, active bool)
 	Delete(domain string)
-	Compile()
 }
 
 type AcmeChallengeProvider interface {

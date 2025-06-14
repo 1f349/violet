@@ -56,7 +56,7 @@ func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server
 			},
 			GetCertificate: func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// error out on invalid domains
-				if !conf.Domains.IsValid(info.ServerName) {
+				if !conf.Domains.IsValid(info.Context(), info.ServerName) {
 					return nil, fmt.Errorf("invalid hostname used: '%s'", info.ServerName)
 				}
 

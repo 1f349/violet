@@ -68,3 +68,16 @@ func (q *Queries) GetActiveDomains(ctx context.Context) ([]string, error) {
 	}
 	return items, nil
 }
+
+const isDomainActive = `-- name: IsDomainActive :one
+SELECT EXISTS(SELECT 1
+              FROM domains
+              WHERE domain = ? AND active = 1) AS active
+`
+
+func (q *Queries) IsDomainActive(ctx context.Context, domain string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, isDomainActive, domain)
+	var active int64
+	err := row.Scan(&active)
+	return active, err
+}
