@@ -85,7 +85,6 @@ func domainManage(keyStore *mjwt.KeyStore, domains utils.DomainProvider) httprou
 	return checkAuthWithPerm(keyStore, "violet:domains", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims) {
 		// add domain with active state
 		domains.Put(params.ByName("domain"), req.Method == http.MethodPut)
-		domains.Compile()
 		rw.WriteHeader(http.StatusAccepted)
 	})
 }

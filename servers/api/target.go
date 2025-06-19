@@ -33,7 +33,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database", err)
 			return
 		}
-		manager.Compile()
 	}))
 	r.DELETE("/route", parseJsonAndCheckOwnership[sourceJson](keyStore, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRoute(t.Src)
@@ -42,7 +41,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to delete route from database", err)
 			return
 		}
-		manager.Compile()
 	}))
 
 	// Endpoint for redirects
@@ -65,7 +63,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database", err)
 			return
 		}
-		manager.Compile()
 	}))
 	r.DELETE("/redirect", parseJsonAndCheckOwnership[sourceJson](keyStore, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRedirect(t.Src)
@@ -74,7 +71,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to delete redirect from database", err)
 			return
 		}
-		manager.Compile()
 	}))
 }
 

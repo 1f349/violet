@@ -21,6 +21,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"time"
 )
 
 type setupCmd struct {
@@ -154,7 +155,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 	// domain manager to add a domain, no need to compile here as the program needs
 	// to be run again with the serve subcommand
-	allowedDomains := domains.New(db)
+	allowedDomains := domains.New(context.Background(), db, 5*time.Second)
 	allowedDomains.Put(answers.FirstDomain, true)
 
 	// don't bother with this part is the api won't be listening
@@ -181,7 +182,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 
 		// add with the route manager, no need to compile as this will run when opened
 		// with the serve subcommand
-		routeManager := router.NewManager(db, proxy.NewHybridTransportWithCalls(&nilTransport{}, &nilTransport{}, &websocket.Server{}))
+		routeManager := router.NewManager(context.Background(), db, proxy.NewHybridTransportWithCalls(&nilTransport{}, &nilTransport{}, &websocket.Server{}), 5*time.Minute)
 		err = routeManager.InsertRoute(target.RouteWithActive{
 			Route: target.Route{
 				Src:   path.Join(apiUrl.Host, apiUrl.Path),
