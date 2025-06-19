@@ -6,7 +6,6 @@ type DomainProvider interface {
 	IsValid(host string) bool
 	Put(domain string, active bool)
 	Delete(domain string)
-	Compile()
 }
 
 type AcmeChallengeProvider interface {

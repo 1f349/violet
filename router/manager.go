@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 var Logger = logger.Logger.WithPrefix("Violet Manager")
@@ -27,14 +28,20 @@ type Manager struct {
 
 // NewManager create a new manager, initialises the routes and redirects tables
 // in the database and runs a first time compile.
-func NewManager(db *database.Queries, proxy *proxy.HybridTransport) *Manager {
+func NewManager(ctx context.Context, db *database.Queries, proxy *proxy.HybridTransport, tableRefreshGap time.Duration) *Manager {
 	m := &Manager{
 		db: db,
 		s:  &sync.RWMutex{},
 		r:  New(proxy),
 		p:  proxy,
 	}
-	m.z = rescheduler.NewRescheduler(m.threadCompile)
+
+	err := m.compile()
+	if err != nil {
+		Logger.Info("First time routing/redirect table compilation failed", "err", err)
+	}
+
+	go m.refreshTables(ctx, tableRefreshGap)
 	return m
 }
 
@@ -45,25 +52,38 @@ func (m *Manager) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	r.ServeHTTP(rw, req)
 }
 
-func (m *Manager) Compile() {
-	m.z.Run()
+func (m *Manager) refreshTables(ctx context.Context, gap time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			Logger.Info("Shutting down routing/redirect table refresher")
+			return
+
+		case <-time.After(gap):
+			err := m.compile()
+			if err != nil {
+				Logger.Error("Routing/Redirect table compilation failed", "err", err)
+			}
+		}
+	}
 }
 
-func (m *Manager) threadCompile() {
+func (m *Manager) compile() error {
 	// new router
 	router := New(m.p)
 
 	// compile router and check errors
 	err := m.internalCompile(router)
 	if err != nil {
-		Logger.Info("Compile failed", "err", err)
-		return
+		return err
 	}
 
 	// lock while replacing router
 	m.s.Lock()
 	m.r = router
 	m.s.Unlock()
+
+	return nil
 }
 
 // internalCompile is a hidden internal method for querying the database during

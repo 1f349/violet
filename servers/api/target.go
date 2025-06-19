@@ -35,7 +35,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database", err)
 			return
 		}
-		manager.Compile()
 
 		rw.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(rw).Encode(route)
@@ -47,7 +46,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to delete route from database", err)
 			return
 		}
-		manager.Compile()
 	}))
 
 	// Endpoint for redirects
@@ -71,7 +69,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database", err)
 			return
 		}
-		manager.Compile()
 
 		rw.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(rw).Encode(redirect)
@@ -83,7 +80,6 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 			apiError(rw, http.StatusInternalServerError, "Failed to delete redirect from database", err)
 			return
 		}
-		manager.Compile()
 	}))
 }
 
