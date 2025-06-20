@@ -34,7 +34,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 	httpsConf := &conf.Conf{
 		RateLimit: 5,
 		Domains:   &fake.Domains{},
-		Certs:     certs.New(nil, nil, true),
+		Certs:     certs.New(nil, nil, true, 5*time.Second),
 		Signer:    fake.SnakeOilProv.KeyStore(),
 		Router:    router.NewManager(context.Background(), db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{}), 5*time.Second),
 	}

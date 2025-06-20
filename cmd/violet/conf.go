@@ -10,6 +10,7 @@ type startUpConfig struct {
 	RateLimit     uint64             `json:"rate_limit"`
 	MetricsToken  string             `json:"metrics_token"`
 	TableRefresh  utils.DurationText `json:"table_refresh"`
+	CertRefresh   utils.DurationText `json:"cert_refresh"`
 }
 
 type listenConfig struct {

@@ -16,5 +16,4 @@ type AcmeChallengeProvider interface {
 
 type CertProvider interface {
 	GetCertForDomain(domain string) *tls.Certificate
-	Compile()
 }
