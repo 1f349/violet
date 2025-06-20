@@ -127,6 +127,11 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
 	keyDir := os.DirFS(filepath.Join(wd, "keys"))
 
+	dynamicErrorPages, err := errorPages.New(errorPageDir)
+	if err != nil {
+		logger.Logger.Fatal("Failed to load error pages", "err", err)
+	}
+
 	serviceCtx, cancelService := context.WithCancel(context.Background())
 
 	ws := websocket.NewServer()
@@ -135,7 +140,6 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	allowedCerts := certs.New(certDir, keyDir, config.SelfSigned, time.Duration(config.CertRefresh))        // load certificate manager
 	hybridTransport := proxy.NewHybridTransport(ws)                                                         // load reverse proxy
 	dynamicFavicons := favicons.New(db, config.InkscapeCmd)                                                 // load dynamic favicon provider
-	dynamicErrorPages := errorPages.New(errorPageDir)                                                       // load dynamic error page provider
 	dynamicRouter := router.NewManager(serviceCtx, db, hybridTransport, time.Duration(config.TableRefresh)) // load dynamic router manager
 
 	// struct containing config for the http servers
@@ -152,7 +156,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	}
 
 	// create the compilable list and run a first time compile
-	allCompilables := utils.MultiCompilable{dynamicFavicons, dynamicErrorPages}
+	allCompilables := utils.MultiCompilable{dynamicFavicons}
 	allCompilables.Compile()
 
 	_, httpsPort, ok := utils.SplitDomainPort(config.Listen.Https, 443)
