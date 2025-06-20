@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type fakeTransport struct{ req *http.Request }
@@ -29,7 +30,7 @@ func TestNewManager(t *testing.T) {
 
 	ft := &fakeTransport{}
 	ht := proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})
-	m := NewManager(db, ht)
+	m := NewManager(context.Background(), db, ht, 5*time.Second)
 	assert.NoError(t, m.internalCompile(m.r))
 
 	rec := httptest.NewRecorder()
@@ -62,7 +63,7 @@ func TestNewManager(t *testing.T) {
 func TestManager_GetAllRoutes(t *testing.T) {
 	db, err := violet.InitDB("file:TestManager_GetAllRoutes?mode=memory&cache=shared")
 	assert.NoError(t, err)
-	m := NewManager(db, nil)
+	m := NewManager(context.Background(), db, nil, 5*time.Second)
 	a := []error{
 		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "example.com"}, Active: true}),
 		m.InsertRoute(target.RouteWithActive{Route: target.Route{Src: "test.example.com"}, Active: true}),
@@ -93,7 +94,7 @@ func TestManager_GetAllRoutes(t *testing.T) {
 func TestManager_GetAllRedirects(t *testing.T) {
 	db, err := violet.InitDB("file:TestManager_GetAllRedirects?mode=memory&cache=shared")
 	assert.NoError(t, err)
-	m := NewManager(db, nil)
+	m := NewManager(context.Background(), db, nil, 5*time.Second)
 	a := []error{
 		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "example.com"}, Active: true}),
 		m.InsertRedirect(target.RedirectWithActive{Redirect: target.Redirect{Src: "test.example.com"}, Active: true}),

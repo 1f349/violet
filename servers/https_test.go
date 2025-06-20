@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"context"
 	"github.com/1f349/violet"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/proxy"
@@ -14,6 +15,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 )
 
 type fakeTransport struct{}
@@ -34,7 +36,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 		Domains:   &fake.Domains{},
 		Certs:     certs.New(nil, nil, true),
 		Signer:    fake.SnakeOilProv.KeyStore(),
-		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})),
+		Router:    router.NewManager(context.Background(), db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{}), 5*time.Second),
 	}
 	srv := NewHttpsServer(httpsConf, nil)
 
