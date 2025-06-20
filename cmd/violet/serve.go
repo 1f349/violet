@@ -141,7 +141,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	ws := websocket.NewServer()
 	allowedDomains := domains.New(serviceCtx, db, time.Duration(config.TableRefresh))                       // load allowed domains
 	acmeChallenges := utils.NewAcmeChallenge()                                                              // load acme challenge store
-	allowedCerts := certs.New(certDir, keyDir, config.SelfSigned)                                           // load certificate manager
+	allowedCerts := certs.New(certDir, keyDir, config.SelfSigned, time.Duration(config.CertRefresh))        // load certificate manager
 	hybridTransport := proxy.NewHybridTransport(ws)                                                         // load reverse proxy
 	dynamicFavicons := favicons.New(db, config.InkscapeCmd)                                                 // load dynamic favicon provider
 	dynamicErrorPages := errorPages.New(errorPageDir)                                                       // load dynamic error page provider
@@ -161,7 +161,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	}
 
 	// create the compilable list and run a first time compile
-	allCompilables := utils.MultiCompilable{allowedCerts, dynamicFavicons, dynamicErrorPages}
+	allCompilables := utils.MultiCompilable{dynamicFavicons, dynamicErrorPages}
 	allCompilables.Compile()
 
 	_, httpsPort, ok := utils.SplitDomainPort(config.Listen.Https, 443)
