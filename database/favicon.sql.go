@@ -51,8 +51,8 @@ func (q *Queries) GetFavicons(ctx context.Context) ([]GetFaviconsRow, error) {
 }
 
 const updateFaviconCache = `-- name: UpdateFaviconCache :exec
-INSERT OR
-REPLACE INTO favicons (host, svg, png, ico)
+REPLACE
+INTO favicons (host, svg, png, ico)
 VALUES (?, ?, ?, ?)
 `
 

@@ -17,13 +17,11 @@ SELECT source, destination, description, flags, code, active
 FROM redirects;
 
 -- name: AddRoute :exec
-INSERT OR
 REPLACE
 INTO routes (source, destination, description, flags, active)
 VALUES (?, ?, ?, ?, ?);
 
 -- name: AddRedirect :exec
-INSERT OR
 REPLACE
 INTO redirects (source, destination, description, flags, code, active)
 VALUES (?, ?, ?, ?, ?, ?);
