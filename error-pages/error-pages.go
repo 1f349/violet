@@ -3,7 +3,6 @@ package error_pages
 import (
 	"fmt"
 	"github.com/1f349/violet/logger"
-	"github.com/mrmelon54/rescheduler"
 	"io/fs"
 	"net/http"
 	"path/filepath"
@@ -21,11 +20,10 @@ type ErrorPages struct {
 	m       map[int]func(rw http.ResponseWriter)
 	generic func(rw http.ResponseWriter, code int)
 	dir     fs.FS
-	r       *rescheduler.Rescheduler
 }
 
 // New creates a new error pages generator
-func New(dir fs.FS) *ErrorPages {
+func New(dir fs.FS) (*ErrorPages, error) {
 	e := &ErrorPages{
 		s: &sync.RWMutex{},
 		m: make(map[int]func(rw http.ResponseWriter)),
@@ -44,8 +42,7 @@ func New(dir fs.FS) *ErrorPages {
 		},
 		dir: dir,
 	}
-	e.r = rescheduler.NewRescheduler(e.threadCompile)
-	return e
+	return e, e.threadCompile()
 }
 
 // ServeError writes the error page for the given code to the response writer
@@ -64,15 +61,7 @@ func (e *ErrorPages) ServeError(rw http.ResponseWriter, code int) {
 	e.generic(rw, code)
 }
 
-// Compile loads the error pages  the certificates and keys from the directories.
-//
-// This method makes use of the rescheduler instead of just ignoring multiple
-// calls.
-func (e *ErrorPages) Compile() {
-	e.r.Run()
-}
-
-func (e *ErrorPages) threadCompile() {
+func (e *ErrorPages) threadCompile() error {
 	// new map
 	errorPageMap := make(map[int]func(rw http.ResponseWriter))
 
@@ -81,7 +70,7 @@ func (e *ErrorPages) threadCompile() {
 		err := e.internalCompile(errorPageMap)
 		if err != nil {
 			Logger.Info("Compile failed", "err", err)
-			return
+			return err
 		}
 	}
 
@@ -89,6 +78,8 @@ func (e *ErrorPages) threadCompile() {
 	e.s.Lock()
 	e.m = errorPageMap
 	e.s.Unlock()
+
+	return nil
 }
 
 func (e *ErrorPages) internalCompile(m map[int]func(rw http.ResponseWriter)) error {

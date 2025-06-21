@@ -10,6 +10,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"image/png"
+	"os"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ var (
 func TestFaviconsNew(t *testing.T) {
 	getFaviconViaRequest = func(_ string) ([]byte, error) { return exampleSvg, nil }
 
-	db, err := violet.InitDB("file:TestFaviconsNew?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
 	favicons := New(db, "inkscape")

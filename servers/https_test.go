@@ -1,6 +1,7 @@
 package servers
 
 import (
+	"context"
 	"github.com/1f349/violet"
 	"github.com/1f349/violet/certs"
 	"github.com/1f349/violet/proxy"
@@ -12,8 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
+	"time"
 )
 
 type fakeTransport struct{}
@@ -25,16 +28,16 @@ func (f *fakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 }
 
 func TestNewHttpsServer_RateLimit(t *testing.T) {
-	db, err := violet.InitDB("file:TestNewHttpsServer_RateLimit?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}
 	httpsConf := &conf.Conf{
 		RateLimit: 5,
 		Domains:   &fake.Domains{},
-		Certs:     certs.New(nil, nil, true),
+		Certs:     certs.New(nil, nil, true, 5*time.Second),
 		Signer:    fake.SnakeOilProv.KeyStore(),
-		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})),
+		Router:    router.NewManager(context.Background(), db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{}), 5*time.Second),
 	}
 	srv := NewHttpsServer(httpsConf, nil)
 

@@ -16,7 +16,7 @@ type Redirect struct {
 	Dst   string `json:"dst"`   // redirect destination
 	Desc  string `json:"desc"`  // description for admin panel use
 	Flags Flags  `json:"flags"` // extra flags
-	Code  int64  `json:"code"`  // status code used to redirect
+	Code  int32  `json:"code"`  // status code used to redirect
 }
 
 type RedirectWithActive struct {

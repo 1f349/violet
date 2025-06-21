@@ -52,7 +52,7 @@ func TestCertsNew_Lookup(t *testing.T) {
 		},
 	}
 
-	certs := New(certDir, keyDir, false)
+	certs := New(certDir, keyDir, false, 5*time.Second)
 	assert.NoError(t, certs.internalCompile(certs.m))
 	cc := certs.GetCertForDomain("example.com")
 	leaf := certgen.TlsLeaf(cc)
@@ -67,7 +67,7 @@ func TestCertsNew_SelfSigned(t *testing.T) {
 		return
 	}
 
-	certs := New(nil, nil, true)
+	certs := New(nil, nil, true, 5*time.Second)
 	cc := certs.GetCertForDomain("example.com")
 	leaf := certgen.TlsLeaf(cc)
 	assert.Equal(t, []string{"example.com"}, leaf.DNSNames)

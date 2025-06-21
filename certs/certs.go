@@ -7,7 +7,6 @@ import (
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/utils"
 	"github.com/mrmelon54/certgen"
-	"github.com/mrmelon54/rescheduler"
 	"io/fs"
 	"math/big"
 	"os"
@@ -28,13 +27,12 @@ type Certs struct {
 	m    map[string]*tls.Certificate
 	ca   *certgen.CertGen
 	sn   atomic.Int64
-	r    *rescheduler.Rescheduler
 	t    *time.Ticker
 	ts   chan struct{}
 }
 
 // New creates a new cert list
-func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
+func New(certDir fs.FS, keyDir fs.FS, selfCert bool, gap time.Duration) *Certs {
 	c := &Certs{
 		cDir: certDir,
 		kDir: keyDir,
@@ -45,15 +43,13 @@ func New(certDir fs.FS, keyDir fs.FS, selfCert bool) *Certs {
 	}
 
 	if !selfCert {
-		// the rescheduler isn't even used in self cert mode so why initialise it
-		c.r = rescheduler.NewRescheduler(c.threadCompile)
-
-		c.t = time.NewTicker(2 * time.Hour)
+		// the refresh loop isn't even used in self cert mode so why initialise it
+		c.t = time.NewTicker(gap)
 		go func() {
 			for {
 				select {
 				case <-c.t.C:
-					c.Compile()
+					c.threadCompile()
 				case <-c.ts:
 					return
 				}
@@ -119,18 +115,6 @@ func (c *Certs) GetCertForDomain(domain string) *tls.Certificate {
 
 	// no cert found
 	return nil
-}
-
-// Compile loads the certificates and keys from the directories.
-//
-// This method makes use of the rescheduler instead of just ignoring multiple
-// calls.
-func (c *Certs) Compile() {
-	// don't bother compiling in self-signed mode
-	if c.ss {
-		return
-	}
-	c.r.Run()
 }
 
 func (c *Certs) Stop() {

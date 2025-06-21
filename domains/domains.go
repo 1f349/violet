@@ -6,9 +6,9 @@ import (
 	"github.com/1f349/violet/database"
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/utils"
-	"github.com/mrmelon54/rescheduler"
 	"strings"
 	"sync"
+	"time"
 )
 
 var Logger = logger.Logger.WithPrefix("Violet Domains")
@@ -18,17 +18,16 @@ type Domains struct {
 	db *database.Queries
 	s  *sync.RWMutex
 	m  map[string]struct{}
-	r  *rescheduler.Rescheduler
 }
 
 // New creates a new domain list
-func New(db *database.Queries) *Domains {
+func New(ctx context.Context, db *database.Queries, gap time.Duration) *Domains {
 	a := &Domains{
 		db: db,
 		s:  &sync.RWMutex{},
 		m:  make(map[string]struct{}),
 	}
-	a.r = rescheduler.NewRescheduler(a.threadCompile)
+	go a.refreshTable(ctx, gap)
 	return a
 }
 
@@ -54,30 +53,38 @@ func (d *Domains) IsValid(host string) bool {
 	return false
 }
 
-// Compile downloads the list of domains from the database and loads them into
-// memory for faster lookups.
-//
-// This method makes use of the rescheduler instead of just ignoring multiple
-// calls.
-func (d *Domains) Compile() {
-	d.r.Run()
+func (d *Domains) refreshTable(ctx context.Context, gap time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			Logger.Info("Shutting down domain table refresher")
+			return
+
+		case <-time.After(gap):
+			err := d.compile()
+			if err != nil {
+				Logger.Error("Domain table compilation failed", "err", err)
+			}
+		}
+	}
 }
 
-func (d *Domains) threadCompile() {
+func (d *Domains) compile() error {
 	// new map
 	domainMap := make(map[string]struct{})
 
 	// compile map and check errors
 	err := d.internalCompile(domainMap)
 	if err != nil {
-		Logger.Info("Compile faile", "err", err)
-		return
+		return err
 	}
 
 	// lock while replacing the map
 	d.s.Lock()
 	d.m = domainMap
 	d.s.Unlock()
+
+	return nil
 }
 
 // internalCompile is a hidden internal method for querying the database during

@@ -6,17 +6,20 @@ import (
 	"github.com/1f349/violet/database"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestDomainsNew(t *testing.T) {
-	db, err := violet.InitDB("file:TestDomainsNew?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
-	domains := New(db)
+	domains := New(context.Background(), db, 5*time.Second)
 	err = db.AddDomain(context.Background(), database.AddDomainParams{Domain: "example.com", Active: true})
 	assert.NoError(t, err)
-	domains.Compile()
+
+	_ = domains.compile()
 
 	if _, ok := domains.m["example.com"]; ok {
 		assert.True(t, ok)
@@ -29,10 +32,10 @@ func TestDomainsNew(t *testing.T) {
 
 func TestDomains_IsValid(t *testing.T) {
 	// open sqlite database
-	db, err := violet.InitDB("file:TestDomains_IsValid?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
-	domains := New(db)
+	domains := New(context.Background(), db, 5*time.Second)
 	err = db.AddDomain(context.Background(), database.AddDomainParams{Domain: "example.com", Active: true})
 	assert.NoError(t, err)
 
