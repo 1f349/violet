@@ -10,7 +10,8 @@ import (
 )
 
 func TestErrorPages_ServeError(t *testing.T) {
-	errorPages := New(nil)
+	errorPages, err := New(nil)
+	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
 	errorPages.ServeError(rec, http.StatusTeapot)
@@ -41,8 +42,8 @@ func TestErrorPagesWithCustom(t *testing.T) {
 		},
 	}
 
-	errorPages := New(fs)
-	assert.NoError(t, errorPages.internalCompile(errorPages.m))
+	errorPages, err := New(fs)
+	assert.NoError(t, err)
 
 	rec := httptest.NewRecorder()
 	errorPages.ServeError(rec, http.StatusTeapot)
