@@ -12,7 +12,6 @@ import (
 )
 
 const addRedirect = `-- name: AddRedirect :exec
-INSERT OR
 REPLACE
 INTO redirects (source, destination, description, flags, code, active)
 VALUES (?, ?, ?, ?, ?, ?)
@@ -23,7 +22,7 @@ type AddRedirectParams struct {
 	Destination string       `json:"destination"`
 	Description string       `json:"description"`
 	Flags       target.Flags `json:"flags"`
-	Code        int64        `json:"code"`
+	Code        int32        `json:"code"`
 	Active      bool         `json:"active"`
 }
 
@@ -40,7 +39,6 @@ func (q *Queries) AddRedirect(ctx context.Context, arg AddRedirectParams) error 
 }
 
 const addRoute = `-- name: AddRoute :exec
-INSERT OR
 REPLACE
 INTO routes (source, destination, description, flags, active)
 VALUES (?, ?, ?, ?, ?)
@@ -75,7 +73,7 @@ type GetActiveRedirectsRow struct {
 	Source      string       `json:"source"`
 	Destination string       `json:"destination"`
 	Flags       target.Flags `json:"flags"`
-	Code        int64        `json:"code"`
+	Code        int32        `json:"code"`
 }
 
 func (q *Queries) GetActiveRedirects(ctx context.Context) ([]GetActiveRedirectsRow, error) {
@@ -151,7 +149,7 @@ type GetAllRedirectsRow struct {
 	Destination string       `json:"destination"`
 	Description string       `json:"description"`
 	Flags       target.Flags `json:"flags"`
-	Code        int64        `json:"code"`
+	Code        int32        `json:"code"`
 	Active      bool         `json:"active"`
 }
 

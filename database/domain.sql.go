@@ -10,8 +10,6 @@ import (
 )
 
 const addDomain = `-- name: AddDomain :exec
-INSERT
-OR
 REPLACE
 INTO domains (domain, active)
 VALUES (?, ?)
@@ -28,8 +26,6 @@ func (q *Queries) AddDomain(ctx context.Context, arg AddDomainParams) error {
 }
 
 const deleteDomain = `-- name: DeleteDomain :exec
-INSERT
-OR
 REPLACE
 INTO domains(domain, active)
 VALUES (?, false)
