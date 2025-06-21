@@ -14,5 +14,13 @@ jobs:
     - run: sudo add-apt-repository ppa:inkscape.dev/stable
     - run: sudo apt-get update
     - run: sudo apt-get install inkscape -y
+    - name: Set up MariaDB
+      id: mariadb
+      uses: rusher/action-setup-mariadb@v1.6
+      with:
+        tag: '11.4'
+        local: true  # Force local installation
+        root-password: 'myRootPassword'
+        database: 'myDb'
     - run: go build ./cmd/violet/
-    - run: go test ./...
+    - run: DB=root:myRootPassword@tcp(127.0.0.1)/maildepo go test ./...
