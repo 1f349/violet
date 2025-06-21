@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func (f *fakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 }
 
 func TestNewHttpsServer_RateLimit(t *testing.T) {
-	db, err := violet.InitDB("file:TestNewHttpsServer_RateLimit?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}

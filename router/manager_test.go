@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -25,7 +26,7 @@ func (f *fakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestNewManager(t *testing.T) {
-	db, err := violet.InitDB("file:TestNewManager?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 
 	ft := &fakeTransport{}
@@ -61,7 +62,7 @@ func TestNewManager(t *testing.T) {
 }
 
 func TestManager_GetAllRoutes(t *testing.T) {
-	db, err := violet.InitDB("file:TestManager_GetAllRoutes?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 	m := NewManager(context.Background(), db, nil, 5*time.Second)
 	a := []error{
@@ -92,7 +93,7 @@ func TestManager_GetAllRoutes(t *testing.T) {
 }
 
 func TestManager_GetAllRedirects(t *testing.T) {
-	db, err := violet.InitDB("file:TestManager_GetAllRedirects?mode=memory&cache=shared")
+	db, err := violet.InitDB(os.Getenv("DB"))
 	assert.NoError(t, err)
 	m := NewManager(context.Background(), db, nil, 5*time.Second)
 	a := []error{
