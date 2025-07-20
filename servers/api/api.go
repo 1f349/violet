@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"time"
 )
@@ -40,6 +41,9 @@ func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry
 			return
 		}
 		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(rw, req)
+	})
+	r.GET("/debug/pprof/*a", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
+		pprof.Index(rw, req)
 	})
 
 	// Endpoint for compile action
