@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/subtle"
 	"encoding/json"
 	"github.com/1f349/mjwt"
 	"github.com/1f349/mjwt/auth"
@@ -9,10 +8,7 @@ import (
 	"github.com/1f349/violet/servers/conf"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -20,26 +16,11 @@ import (
 // endpoints for the software
 //
 // `/compile` - reloads all domains, routes and redirects
-func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, registry *prometheus.Registry, authToken string) *http.Server {
+func NewApiServer(conf *conf.Conf, compileTarget utils.MultiCompilable, authToken string) *http.Server {
 	r := httprouter.New()
 
 	r.GET("/", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
 		http.Error(rw, "Violet API Endpoint", http.StatusOK)
-	})
-	r.GET("/metrics", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params) {
-		authValue := req.Header.Get("Authorization")
-		if authValue == "" {
-			if strings.HasPrefix(authToken, "Basic ") {
-				rw.Header().Set("WWW-Authenticate", `Basic realm="metrics"`)
-			}
-			http.Error(rw, "Invalid authorization", http.StatusUnauthorized)
-			return
-		}
-		if subtle.ConstantTimeCompare([]byte(authValue), []byte(authToken)) != 1 {
-			http.Error(rw, "Forbidden", http.StatusForbidden)
-			return
-		}
-		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(rw, req)
 	})
 
 	// Endpoint for compile action

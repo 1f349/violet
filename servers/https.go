@@ -6,9 +6,7 @@ import (
 	"github.com/1f349/violet/favicons"
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/servers/conf"
-	"github.com/1f349/violet/servers/metrics"
 	"github.com/1f349/violet/utils"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/sethvargo/go-limiter/memorystore"
 	"net/http"
@@ -19,23 +17,13 @@ import (
 
 // NewHttpsServer creates and runs a http server containing the public https
 // endpoints for the reverse proxy.
-func NewHttpsServer(conf *conf.Conf, registry *prometheus.Registry) *http.Server {
+func NewHttpsServer(conf *conf.Conf) *http.Server {
 	r := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		logger.Logger.Debug("Request", "method", req.Method, "url", req.URL, "remote", req.RemoteAddr, "host", req.Host, "length", req.ContentLength, "goroutine", runtime.NumGoroutine())
 		conf.Router.ServeHTTP(rw, req)
 	})
 	favMiddleware := setupFaviconMiddleware(conf.Favicons, r)
-
-	metricsMeta := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		r.ServeHTTP(rw, req)
-	})
-	if registry != nil {
-		metricsMiddleware := metrics.New(registry, nil).WrapHandler("violet-https", favMiddleware)
-		metricsMeta = func(rw http.ResponseWriter, req *http.Request) {
-			metricsMiddleware.ServeHTTP(rw, metrics.AddMetricsCtx(req))
-		}
-	}
-	rateLimiter := setupRateLimiter(conf.RateLimit, metricsMeta)
+	rateLimiter := setupRateLimiter(conf.RateLimit, favMiddleware)
 	hsts := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 		rateLimiter.ServeHTTP(rw, req)

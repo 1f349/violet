@@ -21,8 +21,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/cloudflare/tableflip"
 	"github.com/google/subcommands"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -129,13 +127,6 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	certDir := os.DirFS(filepath.Join(wd, "certs"))
 	keyDir := os.DirFS(filepath.Join(wd, "keys"))
 
-	// setup registry for metrics
-	promRegistry := prometheus.NewRegistry()
-	promRegistry.MustRegister(
-		collectors.NewGoCollector(),
-		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-	)
-
 	ws := websocket.NewServer()
 	allowedDomains := domains.New(db)                             // load allowed domains
 	acmeChallenges := utils.NewAcmeChallenge()                    // load acme challenge store
@@ -174,7 +165,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		if err != nil {
 			logger.Logger.Fatal("Listen failed", "err", err)
 		}
-		srvApi = api.NewApiServer(srvConf, allCompilables, promRegistry, config.MetricsToken)
+		srvApi = api.NewApiServer(srvConf, allCompilables, config.MetricsToken)
 		srvApi.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "API")
 		l.Info("Starting server", "addr", config.Listen.Api)
@@ -186,7 +177,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		if err != nil {
 			logger.Logger.Fatal("Listen failed", "err", err)
 		}
-		srvHttp = servers.NewHttpServer(uint16(httpsPort), srvConf, promRegistry)
+		srvHttp = servers.NewHttpServer(uint16(httpsPort), srvConf)
 		srvHttp.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTP")
 		l.Info("Starting server", "addr", config.Listen.Http)
@@ -198,7 +189,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		if err != nil {
 			logger.Logger.Fatal("Listen failed", "err", err)
 		}
-		srvHttps = servers.NewHttpsServer(srvConf, promRegistry)
+		srvHttps = servers.NewHttpsServer(srvConf)
 		srvHttps.SetKeepAlivesEnabled(false)
 		l := logger.Logger.With("server", "HTTPS")
 		l.Info("Starting server", "addr", config.Listen.Https)

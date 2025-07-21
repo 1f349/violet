@@ -36,7 +36,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 		Signer:    fake.SnakeOilProv.KeyStore(),
 		Router:    router.NewManager(db, proxy.NewHybridTransportWithCalls(ft, ft, &websocket.Server{})),
 	}
-	srv := NewHttpsServer(httpsConf, nil)
+	srv := NewHttpsServer(httpsConf)
 
 	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.RemoteAddr = "127.0.0.1:1447"
