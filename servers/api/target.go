@@ -2,14 +2,15 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"strings"
+
 	"github.com/1f349/mjwt"
 	"github.com/1f349/violet/logger"
 	"github.com/1f349/violet/router"
 	"github.com/1f349/violet/target"
 	"github.com/1f349/violet/utils"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"strings"
 )
 
 func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *router.Manager) {
@@ -27,13 +28,17 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		_ = json.NewEncoder(rw).Encode(routes)
 	}))
 	r.POST("/route", parseJsonAndCheckOwnership[routeSource](keyStore, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t routeSource) {
-		err := manager.InsertRoute(target.RouteWithActive(t))
+		route := target.RouteWithActive(t)
+		err := manager.InsertRoute(route)
 		if err != nil {
 			logger.Logger.Infof("Failed to insert route into database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to insert route into database", err)
 			return
 		}
 		manager.Compile()
+
+		rw.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(rw).Encode(route)
 	}))
 	r.DELETE("/route", parseJsonAndCheckOwnership[sourceJson](keyStore, "route", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRoute(t.Src)
@@ -59,13 +64,17 @@ func SetupTargetApis(r *httprouter.Router, keyStore *mjwt.KeyStore, manager *rou
 		_ = json.NewEncoder(rw).Encode(redirects)
 	}))
 	r.POST("/redirect", parseJsonAndCheckOwnership[redirectSource](keyStore, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t redirectSource) {
-		err := manager.InsertRedirect(target.RedirectWithActive(t))
+		redirect := target.RedirectWithActive(t)
+		err := manager.InsertRedirect(redirect)
 		if err != nil {
 			logger.Logger.Infof("Failed to insert redirect into database: %s\n", err)
 			apiError(rw, http.StatusInternalServerError, "Failed to insert redirect into database", err)
 			return
 		}
 		manager.Compile()
+
+		rw.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(rw).Encode(redirect)
 	}))
 	r.DELETE("/redirect", parseJsonAndCheckOwnership[sourceJson](keyStore, "redirect", func(rw http.ResponseWriter, req *http.Request, params httprouter.Params, b AuthClaims, t sourceJson) {
 		err := manager.DeleteRedirect(t.Src)
