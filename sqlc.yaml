@@ -1,6 +1,6 @@
 version: "2"
 sql:
-  - engine: sqlite
+  - engine: mysql
     queries: database/queries
     schema: database/migrations
     gen:
@@ -8,8 +8,11 @@ sql:
         package: "database"
         out: "database"
         emit_json_tags: true
+        emit_interface: true
         overrides:
           - column: "routes.flags"
             go_type: "github.com/1f349/violet/target.Flags"
           - column: "redirects.flags"
             go_type: "github.com/1f349/violet/target.Flags"
+          - column: "redirects.code"
+            go_type: "uint16"

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/1f349/violet/database"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -18,15 +18,15 @@ func InitDB(p string) (*database.Queries, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbOpen, err := sql.Open("sqlite3", p)
+	dbOpen, err := sql.Open("mysql", p)
 	if err != nil {
 		return nil, err
 	}
-	dbDrv, err := sqlite3.WithInstance(dbOpen, &sqlite3.Config{})
+	dbDrv, err := mysql.WithInstance(dbOpen, &mysql.Config{})
 	if err != nil {
 		return nil, err
 	}
-	mig, err := migrate.NewWithInstance("iofs", migDrv, "sqlite3", dbDrv)
+	mig, err := migrate.NewWithInstance("iofs", migDrv, "mysql", dbDrv)
 	if err != nil {
 		return nil, err
 	}
