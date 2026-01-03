@@ -30,7 +30,7 @@ type Redirect struct {
 	Destination string       `json:"destination"`
 	Description string       `json:"description"`
 	Flags       target.Flags `json:"flags"`
-	Code        int32        `json:"code"`
+	Code        uint16       `json:"code"`
 	Active      bool         `json:"active"`
 }
 

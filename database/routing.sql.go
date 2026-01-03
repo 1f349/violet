@@ -22,7 +22,7 @@ type AddRedirectParams struct {
 	Destination string       `json:"destination"`
 	Description string       `json:"description"`
 	Flags       target.Flags `json:"flags"`
-	Code        int32        `json:"code"`
+	Code        uint16       `json:"code"`
 	Active      bool         `json:"active"`
 }
 
@@ -73,7 +73,7 @@ type GetActiveRedirectsRow struct {
 	Source      string       `json:"source"`
 	Destination string       `json:"destination"`
 	Flags       target.Flags `json:"flags"`
-	Code        int32        `json:"code"`
+	Code        uint16       `json:"code"`
 }
 
 func (q *Queries) GetActiveRedirects(ctx context.Context) ([]GetActiveRedirectsRow, error) {
@@ -149,7 +149,7 @@ type GetAllRedirectsRow struct {
 	Destination string       `json:"destination"`
 	Description string       `json:"description"`
 	Flags       target.Flags `json:"flags"`
-	Code        int32        `json:"code"`
+	Code        uint16       `json:"code"`
 	Active      bool         `json:"active"`
 }
 
