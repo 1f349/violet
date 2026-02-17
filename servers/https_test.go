@@ -44,7 +44,7 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(5)
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		go func() {
 			defer wg.Done()
 			rec := httptest.NewRecorder()

@@ -9,6 +9,7 @@ import (
 	"github.com/1f349/violet/target"
 	"github.com/mrmelon54/rescheduler"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -127,12 +128,8 @@ func (m *Manager) GetAllRoutes(hosts []string) ([]target.RouteWithActive, error)
 			Active: row.Active,
 		}
 
-		for _, i := range hosts {
-			// if this is never true then the domain was mistakenly grabbed from the database
-			if a.OnDomain(i) {
-				s = append(s, a)
-				break
-			}
+		if slices.ContainsFunc(hosts, a.OnDomain) {
+			s = append(s, a)
 		}
 	}
 
@@ -177,12 +174,8 @@ func (m *Manager) GetAllRedirects(hosts []string) ([]target.RedirectWithActive, 
 			Active: row.Active,
 		}
 
-		for _, i := range hosts {
-			// if this is never true then the domain was mistakenly grabbed from the database
-			if a.OnDomain(i) {
-				s = append(s, a)
-				break
-			}
+		if slices.ContainsFunc(hosts, a.OnDomain) {
+			s = append(s, a)
 		}
 	}
 

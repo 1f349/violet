@@ -55,11 +55,11 @@ func ReplaceSubdomainWithWildcard(domain string) (string, bool) {
 // www.example.com => example.com
 func GetParentDomain(domain string) (string, bool) {
 	// if a valid index isn't found then return false
-	n := strings.IndexByte(domain, '.')
-	if n == -1 {
+	_, after, ok := strings.Cut(domain, ".")
+	if !ok {
 		return "", false
 	}
-	return domain[n+1:], true
+	return after, true
 }
 
 // GetTopFqdn returns the top domain stripping off multiple layers of subdomains.

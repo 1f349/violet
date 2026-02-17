@@ -49,7 +49,7 @@ func (s *serveCmd) Usage() string {
 `
 }
 
-func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcommands.ExitStatus {
 	if s.debugLog {
 		logger.Logger.SetLevel(log.DebugLevel)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/rs/cors"
 	"golang.org/x/net/http/httpguts"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/textproto"
@@ -70,9 +71,7 @@ func (r Route) HasFlag(flag Flags) bool {
 // UpdateHeaders takes an existing set of headers and overwrites them with the
 // extra headers.
 func (r Route) UpdateHeaders(header http.Header) {
-	for k, v := range r.Headers {
-		header[k] = v
-	}
+	maps.Copy(header, r.Headers)
 }
 
 // ServeHTTP responds with the data proxied from the internal server to the
@@ -146,10 +145,8 @@ func (r Route) internalServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// if extra route headers are set
 	if r.Headers != nil {
 		// loop over headers
-		for k, v := range r.Headers {
-			// copy header into the internal request
-			req2.Header[k] = v
-		}
+		// copy header into the internal request
+		maps.Copy(req2.Header, r.Headers)
 	}
 
 	// if forward host is enabled then send the host
@@ -316,7 +313,7 @@ var hopHeaders = []string{
 func removeHopByHopHeaders(h http.Header) {
 	// RFC 7230, section 6.1: Remove headers listed in the "Connection" header.
 	for _, f := range h["Connection"] {
-		for _, sf := range strings.Split(f, ",") {
+		for sf := range strings.SplitSeq(f, ",") {
 			if sf = textproto.TrimString(sf); sf != "" {
 				h.Del(sf)
 			}

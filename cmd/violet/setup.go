@@ -38,7 +38,7 @@ func (s *setupCmd) Usage() string {
 `
 }
 
-func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
+func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcommands.ExitStatus {
 	// get absolute path to specify files
 	wdAbs, err := filepath.Abs(s.wdPath)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 		{
 			Name:   "RateLimit",
 			Prompt: &survey.Input{Message: "Rate limit", Default: "300", Help: "Number of allowed requests per minute per IP"},
-			Validate: func(ans interface{}) error {
+			Validate: func(ans any) error {
 				if ansStr, ok := ans.(string); ok {
 					_, err := strconv.ParseUint(ansStr, 10, 64)
 					return err
@@ -160,7 +160,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	// don't bother with this part is the api won't be listening
 	if answers.ApiListen != "" {
 		// ask for url
-		err = survey.AskOne(&survey.Input{Message: "API URL", Default: "api.example.com/violet", Help: "Enter the URL which should point to the internal Violet API"}, &answers.ApiUrl, survey.WithValidator(func(ans interface{}) error {
+		err = survey.AskOne(&survey.Input{Message: "API URL", Default: "api.example.com/violet", Help: "Enter the URL which should point to the internal Violet API"}, &answers.ApiUrl, survey.WithValidator(func(ans any) error {
 			if ansStr, ok := ans.(string); ok {
 				_, err := url.Parse(ansStr)
 				return err
@@ -202,7 +202,7 @@ func (s *setupCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...interface{})
 	return subcommands.ExitSuccess
 }
 
-func listenAddressValidator(ans interface{}) error {
+func listenAddressValidator(ans any) error {
 	if ansStr, ok := ans.(string); ok {
 		// empty string means disable
 		if ansStr == "" {
