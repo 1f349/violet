@@ -7,10 +7,10 @@ jobs:
         go-version: [1.26.x]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/setup-go@v3
+    - uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go-version }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - run: sudo add-apt-repository ppa:inkscape.dev/stable
     - run: sudo apt-get update
     - run: sudo apt-get install inkscape -y
