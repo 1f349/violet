@@ -28,9 +28,11 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 	db, err := violet.InitDB("file:TestNewHttpsServer_RateLimit?mode=memory&cache=shared")
 	assert.NoError(t, err)
 
+	const rateLimit = 5
+
 	ft := &fakeTransport{}
 	httpsConf := &conf.Conf{
-		RateLimit: 5,
+		RateLimit: rateLimit,
 		Domains:   &fake.Domains{},
 		Certs:     certs.New(nil, nil, true),
 		Signer:    fake.SnakeOilProv.KeyStore(),
@@ -43,8 +45,8 @@ func TestNewHttpsServer_RateLimit(t *testing.T) {
 	assert.NoError(t, err)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(5)
-	for range 5 {
+	wg.Add(rateLimit)
+	for range rateLimit {
 		go func() {
 			defer wg.Done()
 			rec := httptest.NewRecorder()
