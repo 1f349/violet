@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -158,7 +159,8 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcomm
 		httpsPort = 443
 	}
 
-	var srvApi, srvHttp, srvHttps *http.Server
+	var srvApi *http.Server
+	var srvHttp, srvHttps []*http.Server
 	if config.Listen.Api != "" {
 		// Listen must be called before Ready
 		lnApi, err := upg.Listen("tcp", config.Listen.Api)
@@ -173,27 +175,33 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcomm
 	}
 	if config.Listen.Http != "" {
 		// Listen must be called before Ready
-		lnHttp, err := upg.Listen("tcp", config.Listen.Http)
-		if err != nil {
-			logger.Logger.Fatal("Listen failed", "err", err)
+		for _, item := range strings.Split(config.Listen.Http, ",") {
+			local := servers.NewHttpServer(uint16(httpsPort), srvConf)
+			local.SetKeepAlivesEnabled(false)
+			srvHttp = append(srvHttp, local)
+			lnHttp, err := upg.Listen("tcp", item)
+			if err != nil {
+				logger.Logger.Fatal("Listen failed", "err", err)
+			}
+			l := logger.Logger.With("server", "HTTP")
+			l.Info("Starting server", "addr", item)
+			go utils.RunBackgroundHttp(l, local, lnHttp)
 		}
-		srvHttp = servers.NewHttpServer(uint16(httpsPort), srvConf)
-		srvHttp.SetKeepAlivesEnabled(false)
-		l := logger.Logger.With("server", "HTTP")
-		l.Info("Starting server", "addr", config.Listen.Http)
-		go utils.RunBackgroundHttp(l, srvHttp, lnHttp)
 	}
 	if config.Listen.Https != "" {
 		// Listen must be called before Ready
-		lnHttps, err := upg.Listen("tcp", config.Listen.Https)
-		if err != nil {
-			logger.Logger.Fatal("Listen failed", "err", err)
+		for _, item := range strings.Split(config.Listen.Https, ",") {
+			local := servers.NewHttpsServer(srvConf)
+			local.SetKeepAlivesEnabled(false)
+			srvHttps = append(srvHttps, local)
+			lnHttps, err := upg.Listen("tcp", item)
+			if err != nil {
+				logger.Logger.Fatal("Listen failed", "err", err)
+			}
+			l := logger.Logger.With("server", "HTTPS")
+			l.Info("Starting server", "addr", item)
+			go utils.RunBackgroundHttps(l, local, lnHttps)
 		}
-		srvHttps = servers.NewHttpsServer(srvConf)
-		srvHttps.SetKeepAlivesEnabled(false)
-		l := logger.Logger.With("server", "HTTPS")
-		l.Info("Starting server", "addr", config.Listen.Https)
-		go utils.RunBackgroundHttps(l, srvHttps, lnHttps)
 	}
 
 	// Do an upgrade on SIGHUP
@@ -229,11 +237,15 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcomm
 	if srvApi != nil {
 		_ = srvApi.Close()
 	}
-	if srvHttp != nil {
-		_ = srvHttp.Close()
+	for _, srv := range srvHttp {
+		if srv != nil {
+			_ = srv.Close()
+		}
 	}
-	if srvHttps != nil {
-		_ = srvHttps.Close()
+	for _, srv := range srvHttps {
+		if srv != nil {
+			_ = srv.Close()
+		}
 	}
 
 	return subcommands.ExitSuccess
