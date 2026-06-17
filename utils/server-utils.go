@@ -26,10 +26,22 @@ func RunBackgroundHttp(logger *log.Logger, s *http.Server, ln net.Listener) {
 	logHttpServerError(logger, s.Serve(ln))
 }
 
+// RunBackgroundHttpAndListen runs a http server (And Listens) and logs when the server closes or
+// errors.
+func RunBackgroundHttpAndListen(logger *log.Logger, s *http.Server) {
+	logHttpServerError(logger, s.ListenAndServe())
+}
+
 // RunBackgroundHttps runs a http server with TLS encryption and logs when the
 // server closes or errors.
 func RunBackgroundHttps(logger *log.Logger, s *http.Server, ln net.Listener) {
 	logHttpServerError(logger, s.ServeTLS(ln, "", ""))
+}
+
+// RunBackgroundHttpsAndListen runs a http server with TLS encryption (And Listens) and logs when the
+// server closes or errors.
+func RunBackgroundHttpsAndListen(logger *log.Logger, s *http.Server, ln net.Listener) {
+	logHttpServerError(logger, s.ListenAndServeTLS("", ""))
 }
 
 // GetBearer returns the bearer from the Authorization header or an empty string
