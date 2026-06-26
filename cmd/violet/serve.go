@@ -175,7 +175,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcomm
 	}
 	if config.Listen.Http != "" {
 		// Listen must be called before Ready
-		for _, item := range strings.Split(config.Listen.Http, ",") {
+		for item := range strings.SplitSeq(config.Listen.Http, ",") {
 			local := servers.NewHttpServer(uint16(httpsPort), srvConf)
 			local.SetKeepAlivesEnabled(false)
 			srvHttp = append(srvHttp, local)
@@ -190,7 +190,7 @@ func (s *serveCmd) Execute(_ context.Context, _ *flag.FlagSet, _ ...any) subcomm
 	}
 	if config.Listen.Https != "" {
 		// Listen must be called before Ready
-		for _, item := range strings.Split(config.Listen.Https, ",") {
+		for item := range strings.SplitSeq(config.Listen.Https, ",") {
 			local := servers.NewHttpsServer(srvConf)
 			local.SetKeepAlivesEnabled(false)
 			srvHttps = append(srvHttps, local)
