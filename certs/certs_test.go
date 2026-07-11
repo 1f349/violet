@@ -41,13 +41,13 @@ func TestCertsNew_Lookup(t *testing.T) {
 	assert.NoError(t, err)
 
 	certDir := fstest.MapFS{
-		"example.com.cert.pem": {
+		"example.com.crt": {
 			Data: serverTls.GetCertPem(),
 		},
 	}
 
 	keyDir := fstest.MapFS{
-		"example.com.key.pem": {
+		"example.com.key": {
 			Data: serverTls.GetKeyPem(),
 		},
 	}

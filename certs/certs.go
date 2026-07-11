@@ -181,10 +181,10 @@ func (c *Certs) internalCompile(m map[string]*tls.Certificate) error {
 
 		// get file name and extension
 		name := i.Name()
-		if !strings.HasSuffix(name, ".cert.pem") {
+		if !strings.HasSuffix(name, ".crt") {
 			continue
 		}
-		keyName := name[:len(name)-len("cert.pem")] + "key.pem"
+		keyName := name[:len(name)-len("crt")] + "key"
 
 		// try to read cert file
 		certData, err := fs.ReadFile(c.cDir, name)
